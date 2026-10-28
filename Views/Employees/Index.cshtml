@@ -1,0 +1,96 @@
+@{
+    ViewData["Title"] = "Employees";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title">Employees</h3>
+        <div class="d-flex flex-wrap gap-2">
+            <a asp-controller="Employees" asp-action="Export" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-file-export me-1"></i> Export CSV</a>
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importEmployeeModal"><i class="fa-solid fa-file-import me-1"></i> Import CSV</button>
+            <a asp-controller="Employees" asp-action="Create" class="btn btn-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> New Employee</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table id="employeesTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>Designation</th>
+                    <th>Shift</th>
+                    <th>CNIC</th>
+                    <th>Contact</th>
+                    <th class="text-end">Basic Salary</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<partial name="_ImportModal" model='new ERP.Identity.Models.ViewModels.ImportModalViewModel {
+    Id = "importEmployeeModal", Title = "Import Employees",
+    ActionUrl = Url.Action("Import", "Employees"),
+    TemplateUrl = Url.Action("ImportTemplate", "Employees"),
+    Description = "Upload a CSV with EmployeeCode, Name, Department, ShiftName, salary and contact columns. Matching employee codes are updated; rows without a code create employees."
+}' />
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        jQuery(function () {
+            const table = jQuery('#employeesTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "Employees")', dataSrc: 'data' },
+                order: [[0, 'desc']],
+                columns: [
+                    { data: 'employeeCode' },
+                    {
+                        data: null, orderable: true,
+                        render: function (row) {
+                            const img = row.profileImagePath || '/images/default-avatar.svg';
+                            return `<div class="d-flex align-items-center">
+                                        <img src="${img}" class="rounded-circle me-2" style="width:32px;height:32px;object-fit:cover;" alt="" />
+                                        <span>${row.name}</span>
+                                    </div>`;
+                        }
+                    },
+                    { data: 'departmentName', render: d => d || '—' },
+                    { data: 'designation', render: d => d || '—' },
+                    { data: 'shiftName', render: d => d || '<span class="text-muted">Not set</span>' },
+                    { data: 'cnicNumber', render: d => d || '—' },
+                    { data: 'contact', render: d => (d && d.trim()) ? d : '—' },
+                    {
+                        data: 'basicSalary', className: 'text-end',
+                        render: d => Number(d).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    },
+                    {
+                        data: 'isActive',
+                        render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'
+                    },
+                    {
+                        data: 'id', orderable: false,
+                        render: id => `
+                            <div class="text-end text-nowrap">
+                                <a href="/Accounts/Ledgers?partyType=Employee&partyId=${id}" class="btn btn-sm btn-outline-info" title="View employee ledger"><i class="fa-solid fa-book-open"></i></a>
+                                <a href="/Accounts/Employees/Card/${id}" class="btn btn-sm btn-outline-info" title="Print employee card"><i class="fa-solid fa-id-card"></i></a>
+                                <a href="/Accounts/Employees/Details/${id}" class="btn btn-sm btn-outline-secondary" title="Details"><i class="fa-solid fa-eye"></i></a>
+                                <a href="/Accounts/Employees/Edit/${id}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                            </div>`
+                    }
+                ]
+            });
+
+            jQuery('#employeesTable tbody').on('click', '.btn-delete', function () {
+                const id = jQuery(this).data('id');
+                confirmDelete('@Url.Action("Delete", "Employees")', token, function () { table.ajax.reload(); }, { id: id });
+            });
+        });
+    </script>
+}

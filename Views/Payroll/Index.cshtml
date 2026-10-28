@@ -1,0 +1,175 @@
+@using ERP.Identity.Models.Payroll
+@{
+    ViewData["Title"] = "Payroll";
+    var holidays = ViewBag.UpcomingHolidays as List<Holiday> ?? new List<Holiday>();
+    var todayMarked = (int)ViewBag.TodayMarked;
+    var todayPresent = (int)ViewBag.TodayPresent;
+    var employeeCount = (int)ViewBag.EmployeeCount;
+}
+
+<div class="row overview-kpi-grid">
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-primary animate__animated animate__fadeInUp">
+            <div class="inner"><h3>@employeeCount</h3><p>Active Employees</p></div>
+            <div class="icon"><i class="fa-solid fa-id-badge"></i></div>
+            <a asp-controller="Employees" asp-action="Index" class="small-box-footer">Manage <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-info animate__animated animate__fadeInUp">
+            <div class="inner"><h3>@ViewBag.DepartmentCount</h3><p>Departments</p></div>
+            <div class="icon"><i class="fa-solid fa-sitemap"></i></div>
+            <a asp-controller="Departments" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-warning animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3>@ViewBag.PendingRequests</h3><p>Pending Requests</p></div>
+            <div class="icon"><i class="fa-solid fa-envelope-open-text"></i></div>
+            <a asp-controller="LeaveRequests" asp-action="Index" class="small-box-footer">Review <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-secondary animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3>@ViewBag.PendingPayslips</h3><p>Payslips Awaiting Approval</p></div>
+            <div class="icon"><i class="fa-solid fa-receipt"></i></div>
+            <a asp-controller="Payslips" asp-action="Index" class="small-box-footer">Review <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-success animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner">
+                <h3 style="font-size:1.6rem;">@(((decimal)ViewBag.LastMonthNetPayroll).ToString("N0"))</h3>
+                <p>Net Payroll · @ViewBag.LastMonthName</p>
+            </div>
+            <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            <a asp-controller="SalarySheet" asp-action="Index" class="small-box-footer">Salary sheet <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-danger animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner">
+                <h3 style="font-size:1.6rem;">@(((decimal)ViewBag.OutstandingAdvances).ToString("N0"))</h3>
+                <p>Outstanding Advances</p>
+            </div>
+            <div class="icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <a asp-controller="LoanAdvanceRequests" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-bolt me-2"></i>Quick Actions</h3></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a asp-controller="Attendance" asp-action="Index" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-pen-to-square d-block mb-1 fa-lg"></i> Enter Attendance
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="Payslips" asp-action="Generate" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-wand-magic-sparkles d-block mb-1 fa-lg"></i> Generate Payslips
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="PayRuns" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-money-bill-transfer d-block mb-1 fa-lg"></i> New Pay Run
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="Employees" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-user-plus d-block mb-1 fa-lg"></i> Add Employee
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="LoanAdvanceRequests" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-hand-holding-dollar d-block mb-1 fa-lg"></i> Loan / Advance
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="TaxCalculator" asp-action="Index" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-calculator d-block mb-1 fa-lg"></i> Tax Calculator
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-user-clock me-2"></i>Today's Attendance</h3></div>
+            <div class="card-body">
+                @if (todayMarked == 0)
+                {
+                    <p class="text-muted mb-2">No attendance has been recorded for today yet.</p>
+                    <a asp-controller="Attendance" asp-action="Index" class="btn btn-sm btn-primary">
+                        <i class="fa-solid fa-pen-to-square me-1"></i> Mark attendance now
+                    </a>
+                }
+                else
+                {
+                    var pct = employeeCount > 0 ? (int)Math.Round(todayPresent * 100.0 / employeeCount) : 0;
+                    <div class="d-flex justify-content-between mb-1">
+                        <span><strong>@todayPresent</strong> present of <strong>@employeeCount</strong> active employees</span>
+                        <span class="text-muted">@pct%</span>
+                    </div>
+                    <div class="progress" style="height:10px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width:@pct%"></div>
+                    </div>
+                    <p class="text-muted small mt-2 mb-0">@todayMarked employee(s) have an entry for today.</p>
+                }
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-calendar-day me-2"></i>Upcoming Holidays</h3></div>
+            <div class="card-body p-0">
+                @if (holidays.Count == 0)
+                {
+                    <p class="text-muted p-3 mb-0">No upcoming holidays are configured.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var holiday in holidays)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">@holiday.Name</div>
+                                    <small class="text-muted">@holiday.Date.ToString("dddd, dd MMM yyyy")</small>
+                                </div>
+                                @if (holiday.IsOptional)
+                                {
+                                    <span class="badge bg-secondary">Optional</span>
+                                }
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+            <div class="card-footer">
+                <a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="holidays" class="btn btn-sm btn-outline-secondary w-100">
+                    Manage holidays
+                </a>
+            </div>
+        </div>
+
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-circle-info me-2"></i>How Salary Is Calculated</h3></div>
+            <div class="card-body small">
+                <p class="mb-2"><code>hourly rate = basic &divide; 30 &divide; shift hours</code></p>
+                <p class="mb-2"><code>net hours = overtime hours &minus; late hours</code></p>
+                <p class="mb-2"><code>overtime amount = net hours &times; hourly rate</code></p>
+                <p class="mb-2"><code>net payable = (basic &divide; 30 &times; working days) &minus; advance deducted &minus; @(((decimal)ViewBag.MonthlyFixedDeduction).ToString("N0"))</code></p>
+                <p class="text-muted mb-0">
+                    The fixed monthly deduction is set in Payroll Settings and is credited to each
+                    employee's ledger when their payslip is approved.
+                </p>
+            </div>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,132 @@
+@{
+    ViewData["Title"] = "Purchase";
+}
+
+<div class="row overview-kpi-grid">
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-primary animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="pd-vendorCount">@ViewBag.VendorCount</h3><p>Vendors</p></div>
+            <div class="icon"><i class="fa-solid fa-truck-field"></i></div>
+            <a asp-controller="Vendors" asp-action="Index" class="small-box-footer">Manage <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-warning animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="pd-pendingApprovals">@ViewBag.PendingApprovals</h3><p>Pending Approvals</p></div>
+            <div class="icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <a asp-controller="PurchaseOrders" asp-action="Index" class="small-box-footer">Review <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-info animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="pd-poCount">@ViewBag.POCount</h3><p>Purchase Orders</p></div>
+            <div class="icon"><i class="fa-solid fa-file-invoice"></i></div>
+            <a asp-controller="PurchaseOrders" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-success animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="pd-grnCount">@ViewBag.GRNCount</h3><p>Goods Receipts</p></div>
+            <div class="icon"><i class="fa-solid fa-boxes-packing"></i></div>
+            <a asp-controller="GoodsReceiptNotes" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-secondary animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="pd-invoiceCount">@ViewBag.InvoiceCount</h3><p>Invoices</p></div>
+            <div class="icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <a asp-controller="PurchaseInvoices" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-danger animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner"><h3 id="pd-outstandingPayables">@(((decimal)ViewBag.OutstandingPayables).ToString("N0"))</h3><p>Outstanding Payables</p></div>
+            <div class="icon"><i class="fa-solid fa-scale-balanced"></i></div>
+            <a asp-controller="PurchaseInvoices" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-8">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-bolt me-2"></i>Quick Actions</h3></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <a asp-controller="PurchaseOrders" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-file-circle-plus d-block mb-1 fa-lg"></i> New PO
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="InwardGatePasses" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-truck-ramp-box d-block mb-1 fa-lg"></i> Gate Pass
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="GoodsReceiptNotes" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-boxes-packing d-block mb-1 fa-lg"></i> New GRN
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="PurchaseInvoices" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-file-invoice-dollar d-block mb-1 fa-lg"></i> New Invoice
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="PurchaseInvoicePayments" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-money-bill-transfer d-block mb-1 fa-lg"></i> New Payment
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="DebitNotes" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-rotate-left d-block mb-1 fa-lg"></i> Debit Note
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="IssuedCheques" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-money-check d-block mb-1 fa-lg"></i> Issue Cheque
+                        </a>
+                    </div>
+                    <div class="col-md-3">
+                        <a asp-controller="VendorAdvances" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-hand-holding-dollar d-block mb-1 fa-lg"></i> Vendor Advance
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-4">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-building me-2"></i>Vendor Setup</h3></div>
+            <div class="card-body d-grid gap-2">
+                <a asp-controller="Vendors" asp-action="Index" class="btn btn-outline-primary"><i class="fa-solid fa-truck-field me-2"></i>Vendors</a>
+                <a asp-controller="VendorCategories" asp-action="Index" class="btn btn-outline-primary"><i class="fa-solid fa-tags me-2"></i>Vendor Categories</a>
+                <a asp-controller="IssuedCheques" asp-action="Index" class="btn btn-outline-primary"><i class="fa-solid fa-money-check me-2"></i>Issued Cheques</a>
+                <a asp-controller="VendorAdvances" asp-action="Index" class="btn btn-outline-primary"><i class="fa-solid fa-hand-holding-dollar me-2"></i>Vendor Advances</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function refreshPurchasesDashboard() {
+            fetch('/Purchases/GetSummary')
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    document.getElementById('pd-vendorCount').textContent = data.vendorCount;
+                    document.getElementById('pd-pendingApprovals').textContent = data.pendingApprovals;
+                    document.getElementById('pd-poCount').textContent = data.poCount;
+                    document.getElementById('pd-grnCount').textContent = data.grnCount;
+                    document.getElementById('pd-invoiceCount').textContent = data.invoiceCount;
+                    document.getElementById('pd-outstandingPayables').textContent = Number(data.outstandingPayables).toLocaleString('en-PK', { maximumFractionDigits: 0 });
+                })
+                .catch(() => { /* silent - keep last known values on transient failure */ });
+        }
+
+        setInterval(refreshPurchasesDashboard, 20000);
+    </script>
+}

@@ -1,0 +1,73 @@
+@{
+    ViewData["Title"] = "Shift Timings";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Shift Timings</h3>
+        <a asp-controller="ShiftTimings" asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> New Shift
+        </a>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small">
+            Shift length is the divisor in the overtime rate
+            (<code>basic &divide; 30 &divide; shift hours</code>) and the grace period decides when a
+            check-in counts as late.
+        </p>
+        <table id="shiftsTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Shift</th>
+                    <th>Start</th>
+                    <th>End</th>
+                    <th class="text-end">Hours</th>
+                    <th class="text-end">Grace (min)</th>
+                    <th class="text-end">Employees</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        jQuery(function () {
+            const table = jQuery('#shiftsTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "ShiftTimings")', dataSrc: 'data' },
+                order: [[0, 'asc']],
+                columns: [
+                    { data: 'name' },
+                    { data: 'startTime' },
+                    { data: 'endTime' },
+                    { data: 'shiftHours', className: 'text-end', render: d => Number(d).toFixed(2) },
+                    { data: 'gracePeriodMinutes', className: 'text-end' },
+                    { data: 'employeeCount', className: 'text-end' },
+                    {
+                        data: 'isActive',
+                        render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'
+                    },
+                    {
+                        data: 'id', orderable: false,
+                        render: id => `
+                            <div class="text-end">
+                                <a href="/Payroll/ShiftTimings/Edit/${id}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                            </div>`
+                    }
+                ]
+            });
+
+            jQuery('#shiftsTable tbody').on('click', '.btn-delete', function () {
+                const id = jQuery(this).data('id');
+                confirmDelete('@Url.Action("Delete", "ShiftTimings")', token, function () { table.ajax.reload(); }, { id: id });
+            });
+        });
+    </script>
+}

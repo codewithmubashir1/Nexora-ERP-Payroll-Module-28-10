@@ -1,0 +1,119 @@
+@model ERP.Identity.Models.ViewModels.Accounts.BankPaymentVoucherViewModel
+@{
+    ViewData["Title"] = "New Bank Payment Voucher";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <form asp-controller="BankPaymentVouchers" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Bank Payment Voucher</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="VoucherDate" class="form-label"></label>
+                            <input asp-for="VoucherDate" class="form-control datepicker" autocomplete="off" value="@Model.VoucherDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BankAccountId" class="form-label"></label>
+                            <select asp-for="BankAccountId" class="form-select select2" data-placeholder="Select bank account">
+                                <option></option>
+                                @foreach (var a in Model.BankAccounts) { <option value="@a.Id">@a.AccountCode — @a.AccountName</option> }
+                            </select>
+                            <span asp-validation-for="BankAccountId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" />
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ContraAccountId" class="form-label"></label>
+                            <select asp-for="ContraAccountId" class="form-select select2" data-placeholder="What was this paid for?">
+                                <option></option>
+                                @foreach (var a in Model.ContraAccounts) { <option value="@a.Id">@a.AccountCode — @a.AccountName</option> }
+                            </select>
+                            <span asp-validation-for="ContraAccountId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PaidTo" class="form-label"></label>
+                            <input asp-for="PaidTo" class="form-control" placeholder="Who was paid" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PaymentMethod" class="form-label"></label>
+                            <select asp-for="PaymentMethod" id="paymentMethodSelect" class="form-select select2">
+                                <option value="1">Bank Transfer</option>
+                                <option value="2">Cheque</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4" id="chequeNumberField" style="display:none;">
+                            <label asp-for="ChequeNumber" class="form-label"></label>
+                            <input asp-for="ChequeNumber" class="form-control" />
+                        </div>
+                        <div class="col-md-4" id="chequeDateField" style="display:none;">
+                            <label asp-for="ChequeDate" class="form-label"></label>
+                            <input asp-for="ChequeDate" class="form-control datepicker" autocomplete="off" value="@Model.ChequeDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Link to a Party Ledger (optional)</label>
+                            <select id="partySelect" class="form-select select2" data-placeholder="No party">
+                                <option value="">No party</option>
+                                @if (Model.Customers.Any())
+                                {
+                                    <optgroup label="Customers">
+                                        @foreach (var c in Model.Customers) { <option value="Customer:@c.Id">@c.Name (@c.CustomerCode)</option> }
+                                    </optgroup>
+                                }
+                                @if (Model.Vendors.Any())
+                                {
+                                    <optgroup label="Vendors">
+                                        @foreach (var v in Model.Vendors) { <option value="Vendor:@v.Id">@v.Name (@v.VendorCode)</option> }
+                                    </optgroup>
+                                }
+                                @if (Model.Employees.Any())
+                                {
+                                    <optgroup label="Employees">
+                                        @foreach (var e in Model.Employees) { <option value="Employee:@e.Id">@e.Name (@e.EmployeeCode)</option> }
+                                    </optgroup>
+                                }
+                            </select>
+                            <input type="hidden" asp-for="PartyType" id="partyTypeHidden" />
+                            <input type="hidden" asp-for="PartyId" id="partyIdHidden" />
+                            <div class="form-text">Ties this payment to a Customer/Vendor/Employee ledger for their statement.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Narration" class="form-label"></label>
+                            <input asp-for="Narration" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="BankPaymentVouchers" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        jQuery('#partySelect').on('change', function () {
+            const parts = (this.value || '').split(':');
+            const typeMap = { 'Customer': 1, 'Vendor': 2, 'Employee': 3 };
+            document.getElementById('partyTypeHidden').value = parts.length === 2 ? typeMap[parts[0]] : 0;
+            document.getElementById('partyIdHidden').value = parts.length === 2 ? parts[1] : '';
+        });
+
+        function toggleChequeFields() {
+            const show = document.getElementById('paymentMethodSelect').value === '2' ? 'block' : 'none';
+            document.getElementById('chequeNumberField').style.display = show;
+            document.getElementById('chequeDateField').style.display = show;
+        }
+        jQuery('#paymentMethodSelect').on('change', toggleChequeFields);
+        toggleChequeFields();
+    </script>
+}

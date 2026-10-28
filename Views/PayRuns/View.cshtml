@@ -1,0 +1,147 @@
+@using ERP.Identity.Models.Inventory
+@model ERP.Identity.Models.Payroll.PayRun
+@{
+    ViewData["Title"] = $"Pay Run {Model.RunNumber}";
+    var canApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove;
+    var period = new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy");
+
+    var statusClass = Model.Status switch
+    {
+        VoucherStatus.Approved => "badge-status-approved",
+        VoucherStatus.Rejected => "badge-status-rejected",
+        _ => "badge-status-pending"
+    };
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0">
+            @Model.RunNumber &mdash; @period
+            <span class="badge @statusClass ms-2">@Model.Status</span>
+        </h3>
+        <div class="d-flex gap-2">
+            @if (canApprove && Model.Status == VoucherStatus.Pending)
+            {
+                <button type="button" id="btnApprove" class="btn btn-success btn-sm"><i class="fa-solid fa-check me-1"></i> Approve Run</button>
+                <button type="button" id="btnReject" class="btn btn-warning btn-sm"><i class="fa-solid fa-xmark me-1"></i> Reject Run</button>
+            }
+            <a asp-controller="SalarySheet" asp-action="Index" asp-route-month="@Model.Month" asp-route-year="@Model.Year" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-table-list me-1"></i> Salary Sheet
+            </a>
+            <a asp-controller="PayRuns" asp-action="Index" class="btn btn-outline-secondary btn-sm">Back</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Status == VoucherStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
+        {
+            <div class="alert alert-danger"><strong>Rejected:</strong> @Model.RejectionReason</div>
+        }
+
+        <div class="row">
+            <div class="col-md-3 col-6">
+                <div class="small-box bg-primary">
+                    <div class="inner"><h3>@Model.TotalEmployees</h3><p>Employees</p></div>
+                    <div class="icon"><i class="fa-solid fa-users"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="small-box bg-info">
+                    <div class="inner"><h3 style="font-size:1.4rem;">@Model.TotalGrossAmount.ToString("N0")</h3><p>Gross</p></div>
+                    <div class="icon"><i class="fa-solid fa-money-bill"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="small-box bg-warning">
+                    <div class="inner"><h3 style="font-size:1.4rem;">@Model.TotalDeductions.ToString("N0")</h3><p>Deductions</p></div>
+                    <div class="icon"><i class="fa-solid fa-scissors"></i></div>
+                </div>
+            </div>
+            <div class="col-md-3 col-6">
+                <div class="small-box bg-success">
+                    <div class="inner"><h3 style="font-size:1.4rem;">@Model.TotalNetAmount.ToString("N0")</h3><p>Net Payable</p></div>
+                    <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
+                </div>
+            </div>
+        </div>
+
+        <p class="text-muted small mb-0">
+            Payment option: <strong>@(Model.PayImmediately ? "Pay immediately from the selected cash/bank account" : "Accrue net salary to Payroll Payable")</strong>.
+            <br />
+            Created @Model.CreatedOn.ToString("dd MMM yyyy")
+            @if (!string.IsNullOrEmpty(Model.ApprovedByName))
+            {
+                <text>&middot; actioned by @Model.ApprovedByName on @Model.ApprovedOn?.ToString("dd MMM yyyy")</text>
+            }
+        </p>
+    </div>
+</div>
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Payslips in this run</h3></div>
+    <div class="card-body table-responsive">
+        <table class="table table-sm table-striped table-hover align-middle">
+            <thead>
+                <tr>
+                    <th>Payslip #</th>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th class="text-end">Days</th>
+                    <th class="text-end">Earned</th>
+                    <th class="text-end">OT Amount</th>
+                    <th class="text-end">Adv. Deducted</th>
+                    <th class="text-end">Fixed Ded.</th>
+                    <th class="text-end">Net Pay</th>
+                    <th>Status</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var p in Model.Payslips.OrderBy(p => p.Employee!.Name))
+                {
+                    var earned = Math.Round(p.BasicSalary / 30m * p.WorkingDays, 2);
+                    var cls = p.Status switch
+                    {
+                        VoucherStatus.Approved => "badge-status-approved",
+                        VoucherStatus.Rejected => "badge-status-rejected",
+                        _ => "badge-status-pending"
+                    };
+                    <tr>
+                        <td>@p.PayslipNumber</td>
+                        <td>
+                            <div>@(p.Employee?.Name ?? "—")</div>
+                            <small class="text-muted">@(p.Employee?.EmployeeCode ?? "")</small>
+                        </td>
+                        <td class="small text-muted">@(p.Employee?.DepartmentRef?.Name ?? p.Employee?.Department ?? "—")</td>
+                        <td class="text-end">@p.WorkingDays</td>
+                        <td class="text-end">@earned.ToString("N2")</td>
+                        <td class="text-end">@p.OvertimeAmount.ToString("N2")</td>
+                        <td class="text-end">@p.AdvanceDeducted.ToString("N2")</td>
+                        <td class="text-end">@p.FixedMonthlyDeduction.ToString("N2")</td>
+                        <td class="text-end fw-semibold">@p.NetPay.ToString("N2")</td>
+                        <td><span class="badge @cls">@p.Status</span></td>
+                        <td class="text-end">
+                            <a href="/Payroll/Payslips/View/@p.Id" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-eye"></i></a>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const reload = () => window.location.reload();
+
+        document.getElementById('btnApprove')?.addEventListener('click', function () {
+            approveVoucher('@Url.Action("Approve", "PayRuns")', @Model.Id, token, reload);
+        });
+
+        document.getElementById('btnReject')?.addEventListener('click', function () {
+            rejectVoucher('@Url.Action("Reject", "PayRuns")', @Model.Id, token, reload);
+        });
+    </script>
+}

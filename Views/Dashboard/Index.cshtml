@@ -1,0 +1,181 @@
+@{
+    ViewData["Title"] = "Dashboard";
+}
+
+<section class="dashboard-kpis overview-kpi-grid row g-3 mb-4">
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-sales">
+            <div class="kpi-icon"><i class="fa-solid fa-cart-shopping"></i></div>
+            <div class="kpi-label">Sales orders this month</div>
+            <div class="kpi-value" id="db-salesOrdersThisMonth">@ViewBag.SalesOrdersThisMonth</div>
+            <a asp-controller="Sales" asp-action="Index" class="kpi-link">Sales overview <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-purchases">
+            <div class="kpi-icon"><i class="fa-solid fa-truck-ramp-box"></i></div>
+            <div class="kpi-label">Purchase orders this month</div>
+            <div class="kpi-value" id="db-purchaseOrderCount">@ViewBag.PurchaseOrderCount</div>
+            <a asp-controller="Purchases" asp-action="Index" class="kpi-link">Purchase overview <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-stock">
+            <div class="kpi-icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+            <div class="kpi-label">Products in stock</div>
+            <div class="kpi-value" id="db-productsInStockCount">@ViewBag.ProductsInStockCount</div>
+            <a asp-controller="Inventory" asp-action="Index" class="kpi-link">Inventory overview <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-approvals">
+            <div class="kpi-icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <div class="kpi-label">Pending approvals</div>
+            <div class="kpi-value" id="db-pendingApprovalsTotal">@ViewBag.PendingApprovalsTotal</div>
+            <a asp-controller="AllVouchers" asp-action="Index" class="kpi-link">Review documents <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-customers">
+            <div class="kpi-icon"><i class="fa-solid fa-user-group"></i></div>
+            <div class="kpi-label">Active customers</div>
+            <div class="kpi-value" id="db-customerCount">@ViewBag.CustomerCount</div>
+            <a asp-controller="Customers" asp-action="Index" class="kpi-link">Customer directory <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-vendors">
+            <div class="kpi-icon"><i class="fa-solid fa-building"></i></div>
+            <div class="kpi-label">Active vendors</div>
+            <div class="kpi-value" id="db-vendorCount">@ViewBag.VendorCount</div>
+            <a asp-controller="Vendors" asp-action="Index" class="kpi-link">Vendor directory <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-employees">
+            <div class="kpi-icon"><i class="fa-solid fa-people-group"></i></div>
+            <div class="kpi-label">Active employees</div>
+            <div class="kpi-value" id="db-employeeCount">@ViewBag.EmployeeCount</div>
+            <a asp-controller="Employees" asp-action="Index" class="kpi-link">Employee directory <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+    <div class="col-xl-3 col-md-6">
+        <article class="dashboard-kpi kpi-payroll">
+            <div class="kpi-icon"><i class="fa-solid fa-money-check-dollar"></i></div>
+            <div class="kpi-label">Net payroll this month</div>
+            <div class="kpi-value kpi-currency" id="db-payrollNetThisMonth">@(((decimal)ViewBag.PayrollNetThisMonth).ToString("N0"))</div>
+            <a asp-controller="PayRuns" asp-action="Index" class="kpi-link">Pay runs <i class="fa-solid fa-arrow-right"></i></a>
+        </article>
+    </div>
+</section>
+
+<section class="row g-3 dashboard-charts">
+    <div class="col-xl-8">
+        <article class="card dashboard-chart-card h-100">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <div>
+                    <h2 class="card-title">Order value trend</h2>
+                    <p class="chart-subtitle mb-0">Sales and purchase orders over the last six months</p>
+                </div>
+                <span class="chart-period"><i class="fa-regular fa-calendar me-1"></i> 6 months</span>
+            </div>
+            <div class="card-body chart-body"><canvas id="ordersTrendChart" aria-label="Six-month sales and purchase order values" role="img"></canvas></div>
+        </article>
+    </div>
+    <div class="col-xl-4">
+        <article class="card dashboard-chart-card h-100">
+            <div class="card-header">
+                <h2 class="card-title">Order approvals</h2>
+                <p class="chart-subtitle mb-0">Sales vs purchase order status</p>
+            </div>
+            <div class="card-body chart-body"><canvas id="approvalChart" aria-label="Sales and purchase orders by approval status" role="img"></canvas></div>
+        </article>
+    </div>
+</section>
+
+@section Scripts {
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+    <script>
+        const numberFormat = new Intl.NumberFormat('en-PK', { maximumFractionDigits: 0 });
+        const currencyFormat = new Intl.NumberFormat('en-PK', { style: 'currency', currency: 'PKR', maximumFractionDigits: 0 });
+        const chartColors = { sales: '#6259d9', purchases: '#139b83' };
+        let ordersChart;
+        let approvalsChart;
+
+        function renderCharts(data) {
+            const trendContext = document.getElementById('ordersTrendChart');
+            const approvalContext = document.getElementById('approvalChart');
+            if (!trendContext || !approvalContext || !window.Chart) return;
+
+            if (!ordersChart) {
+                ordersChart = new Chart(trendContext, {
+                    type: 'line',
+                    data: { labels: [], datasets: [
+                        { label: 'Sales', data: [], borderColor: chartColors.sales, backgroundColor: 'rgba(98, 89, 217, .11)', fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5 },
+                        { label: 'Purchases', data: [], borderColor: chartColors.purchases, backgroundColor: 'rgba(19, 155, 131, .08)', fill: true, tension: .35, pointRadius: 3, pointHoverRadius: 5 }
+                    ] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        interaction: { mode: 'index', intersect: false },
+                        plugins: {
+                            legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 20 } },
+                            tooltip: { callbacks: { label: context => `${context.dataset.label}: ${currencyFormat.format(context.raw)}` } }
+                        },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, .12)' }, ticks: { callback: value => currencyFormat.format(value) } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            ordersChart.data.labels = data.monthLabels;
+            ordersChart.data.datasets[0].data = data.salesAmounts;
+            ordersChart.data.datasets[1].data = data.purchaseAmounts;
+            ordersChart.update('none');
+
+            if (!approvalsChart) {
+                approvalsChart = new Chart(approvalContext, {
+                    type: 'bar',
+                    data: { labels: [], datasets: [
+                        { label: 'Sales orders', data: [], backgroundColor: chartColors.sales, borderRadius: 5, maxBarThickness: 24 },
+                        { label: 'Purchase orders', data: [], backgroundColor: chartColors.purchases, borderRadius: 5, maxBarThickness: 24 }
+                    ] },
+                    options: {
+                        responsive: true, maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom', labels: { usePointStyle: true, boxWidth: 8, padding: 18 } } },
+                        scales: {
+                            y: { beginAtZero: true, grid: { color: 'rgba(100, 116, 139, .12)' }, ticks: { precision: 0 } },
+                            x: { grid: { display: false } }
+                        }
+                    }
+                });
+            }
+
+            approvalsChart.data.labels = data.approvalStatuses.map(status => status.label);
+            approvalsChart.data.datasets[0].data = data.approvalStatuses.map(status => status.sales);
+            approvalsChart.data.datasets[1].data = data.approvalStatuses.map(status => status.purchases);
+            approvalsChart.update('none');
+        }
+
+        function refreshDashboard() {
+            fetch('/Dashboard/GetSummary')
+                .then(response => response.ok ? response.json() : Promise.reject())
+                .then(data => {
+                    document.getElementById('db-salesOrdersThisMonth').textContent = numberFormat.format(data.salesOrdersThisMonth);
+                    document.getElementById('db-purchaseOrderCount').textContent = numberFormat.format(data.purchaseOrderCount);
+                    document.getElementById('db-productsInStockCount').textContent = numberFormat.format(data.productsInStockCount);
+                    document.getElementById('db-pendingApprovalsTotal').textContent = numberFormat.format(data.pendingApprovalsTotal);
+                    document.getElementById('db-customerCount').textContent = numberFormat.format(data.customerCount);
+                    document.getElementById('db-vendorCount').textContent = numberFormat.format(data.vendorCount);
+                    document.getElementById('db-employeeCount').textContent = numberFormat.format(data.employeeCount);
+                    document.getElementById('db-payrollNetThisMonth').textContent = currencyFormat.format(data.payrollNetThisMonth);
+                    renderCharts(data);
+                })
+                .catch(() => { });
+        }
+
+        refreshDashboard();
+        setInterval(refreshDashboard, 20000);
+    </script>
+}

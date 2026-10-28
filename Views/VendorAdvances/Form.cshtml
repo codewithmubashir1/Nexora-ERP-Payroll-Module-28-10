@@ -1,0 +1,73 @@
+@model ERP.Identity.Models.ViewModels.Purchase.VendorAdvanceViewModel
+@{
+    ViewData["Title"] = "New Vendor Advance";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form asp-controller="VendorAdvances" asp-action="Save" method="post" novalidate id="advanceForm">
+            @Html.AntiForgeryToken()
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Advance Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="VendorId" class="form-label"></label>
+                            <select asp-for="VendorId" class="form-select select2" data-placeholder="Select vendor">
+                                <option></option>
+                                @foreach (var v in Model.Vendors) { <option value="@v.Id">@v.Name (@v.VendorCode)</option> }
+                            </select>
+                            <span asp-validation-for="VendorId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AdvanceDate" class="form-label"></label>
+                            <input asp-for="AdvanceDate" class="form-control datepicker" autocomplete="off" value="@Model.AdvanceDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" />
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="PaymentMethod" class="form-label"></label>
+                            <select asp-for="PaymentMethod" id="paymentMethodSelect" class="form-select select2">
+                                <option value="0">Cash</option>
+                                <option value="1">Bank Transfer</option>
+                                <option value="2">Cheque</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6" id="chequeField" style="display:none;">
+                            <label asp-for="IssuedChequeId" class="form-label"></label>
+                            <select asp-for="IssuedChequeId" class="form-select select2" data-placeholder="Select issued cheque">
+                                <option></option>
+                                @foreach (var c in Model.Cheques) { <option value="@c.Id">@c.ChequeReferenceNo (@c.ChequeNumber)</option> }
+                            </select>
+                            <span asp-validation-for="IssuedChequeId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Remarks" class="form-label"></label>
+                            <input asp-for="Remarks" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="VendorAdvances" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toggleChequeField() {
+            const method = document.getElementById('paymentMethodSelect').value;
+            document.getElementById('chequeField').style.display = method === '2' ? 'block' : 'none';
+        }
+        jQuery('#paymentMethodSelect').on('change', toggleChequeField);
+        toggleChequeField();
+    </script>
+}

@@ -1,0 +1,97 @@
+@{
+    ViewData["Title"] = "Pay Runs";
+    var canApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove;
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Pay Runs</h3>
+        <a asp-controller="PayRuns" asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> New Pay Run
+        </a>
+    </div>
+    <div class="card-body">
+        <p class="text-muted small">
+            A pay run generates and approves a whole period's payslips together. Approving the run
+            posts every payslip in it to the employee ledgers.
+        </p>
+        <table id="payRunsTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Run #</th>
+                    <th>Period</th>
+                    <th class="text-end">Employees</th>
+                    <th class="text-end">Gross</th>
+                    <th class="text-end">Deductions</th>
+                    <th class="text-end">Net</th>
+                    <th>Created</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const canApprove = @(canApprove ? "true" : "false");
+        const money = d => Number(d).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        jQuery(function () {
+            const table = jQuery('#payRunsTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "PayRuns")', dataSrc: 'data' },
+                order: [[0, 'desc']],
+                columns: [
+                    { data: 'runNumber' },
+                    { data: 'period' },
+                    { data: 'totalEmployees', className: 'text-end' },
+                    { data: 'totalGrossAmount', className: 'text-end', render: money },
+                    { data: 'totalDeductions', className: 'text-end', render: money },
+                    { data: 'totalNetAmount', className: 'text-end fw-semibold', render: money },
+                    {
+                        data: 'createdOn',
+                        render: d => d ? new Date(d).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+                    },
+                    { data: 'status', render: d => statusBadge(d) },
+                    {
+                        data: null, orderable: false,
+                        render: function (row) {
+                            let html = '<div class="text-end text-nowrap">';
+                            html += `<a href="/Payroll/PayRuns/View/${row.id}" class="btn btn-sm btn-outline-secondary" title="View"><i class="fa-solid fa-eye"></i></a> `;
+
+                            if (row.status === 'Pending' && canApprove) {
+                                html += `<button type="button" class="btn btn-sm btn-outline-success btn-approve" data-id="${row.id}" title="Approve"><i class="fa-solid fa-check"></i></button> `;
+                                html += `<button type="button" class="btn btn-sm btn-outline-warning btn-reject" data-id="${row.id}" title="Reject"><i class="fa-solid fa-xmark"></i></button> `;
+                            }
+
+                            if (row.status !== 'Approved') {
+                                html += `<button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${row.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>`;
+                            }
+
+                            return html + '</div>';
+                        }
+                    }
+                ]
+            });
+
+            const reload = () => table.ajax.reload(null, false);
+            const body = jQuery('#payRunsTable tbody');
+
+            body.on('click', '.btn-approve', function () {
+                approveVoucher('@Url.Action("Approve", "PayRuns")', jQuery(this).data('id'), token, reload);
+            });
+
+            body.on('click', '.btn-reject', function () {
+                rejectVoucher('@Url.Action("Reject", "PayRuns")', jQuery(this).data('id'), token, reload);
+            });
+
+            body.on('click', '.btn-delete', function () {
+                confirmDelete('@Url.Action("Delete", "PayRuns")', token, reload, { id: jQuery(this).data('id') });
+            });
+        });
+    </script>
+}

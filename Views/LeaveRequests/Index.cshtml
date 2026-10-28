@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Leave Requests";
+
+    var page = new ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+    {
+        Controller = "LeaveRequests",
+        Title = "Leave Requests",
+        NewButtonText = "New Leave Request",
+        CategoryLabel = "Leave Type",
+        DetailLabel = "Period",
+        ShowAmount = false,
+        CanApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove,
+        HelpText = "Approving a leave request writes those days straight into attendance as Leave, so the salary sheet picks them up automatically."
+    };
+}
+
+<partial name="_RequestList" model="page" />
+
+@section Scripts {
+    <partial name="_RequestListScripts" model="page" />
+}

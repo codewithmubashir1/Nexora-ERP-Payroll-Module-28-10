@@ -1,0 +1,516 @@
+/* ==========================================================================
+   NOTYF + FLATPICKR  -  load AFTER styles.css
+   (You can delete the old "---- Notyf ----" block in styles.css section 10;
+    this file replaces it.)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   A. NOTYF
+   Elegant surface card: tinted background, coloured accent bar, tinted icon
+   bubble, full wrapped text in the type's own colour, round dismiss button.
+   -------------------------------------------------------------------------- */
+.notyf {
+    z-index: 2000;
+    padding: 1rem;
+}
+
+.notyf__toast {
+    --nt-rgb: 99, 102, 241;
+    --nt-ink: #4338ca;
+
+    position: relative;
+    display: block;
+    width: min(440px, calc(100vw - 2rem)) !important;
+    max-width: calc(100vw - 2rem) !important;
+    min-height: 0 !important;
+    height: auto;
+    padding: 0 !important;
+    margin-top: .65rem;
+    overflow: hidden;
+    background: color-mix(in srgb, rgb(var(--nt-rgb)) 8%, var(--surface)) !important;
+    border: 1px solid rgba(var(--nt-rgb), .28);
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-lg) !important;
+    font-family: var(--bs-body-font-family);
+}
+
+/* coloured accent bar on the left */
+.notyf__toast::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 0;
+    bottom: 0;
+    width: 4px;
+    background: linear-gradient(180deg, rgb(var(--nt-rgb)), color-mix(in srgb, rgb(var(--nt-rgb)) 65%, #000));
+    z-index: 2;
+}
+
+/* kill the library's coloured "ripple" circle - we draw our own colours */
+.notyf__ripple {
+    display: none !important;
+}
+
+.notyf__toast--success {
+    --nt-rgb: 16, 185, 129;
+    --nt-ink: #047857;
+}
+
+.notyf__toast--error {
+    --nt-rgb: 244, 63, 94;
+    --nt-ink: #be123c;
+}
+
+.notyf__toast--warning {
+    --nt-rgb: 245, 158, 11;
+    --nt-ink: #b45309;
+}
+
+.notyf__toast--info {
+    --nt-rgb: 6, 182, 212;
+    --nt-ink: #0e7490;
+}
+
+.notyf__wrapper {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    align-items: flex-start;
+    gap: .8rem;
+    width: 100%;
+    min-width: 0;
+    padding: .9rem .85rem .9rem 1.15rem !important;
+    border-radius: 0 !important;
+}
+
+.notyf__icon {
+    flex: 0 0 34px;
+    width: 34px !important;
+    height: 34px !important;
+    margin: 0 !important;
+    display: grid;
+    place-items: center;
+    color: #fff;
+    background: linear-gradient(135deg, rgba(var(--nt-rgb), 1), color-mix(in srgb, rgb(var(--nt-rgb)) 70%, #000));
+    border-radius: 11px;
+    box-shadow: 0 6px 14px -6px rgba(var(--nt-rgb), .7);
+}
+
+.notyf__icon i,
+.notyf__icon .fa,
+.notyf__icon svg {
+    color: #fff !important;
+    font-size: .95rem !important;
+    line-height: 1;
+}
+
+/* full text, wraps, coloured per type */
+.notyf__message {
+    flex: 1 1 auto;
+    min-width: 0;
+    max-width: 100%;
+    padding: .3rem 0 0 !important;
+    color: var(--nt-ink) !important;
+    font-size: .92rem;
+    font-weight: 600;
+    line-height: 1.45;
+    white-space: normal !important;
+    overflow: visible !important;
+    text-overflow: clip !important;
+    overflow-wrap: anywhere;
+    word-break: normal;
+    vertical-align: baseline;
+    opacity: 1;
+}
+
+[data-bs-theme="dark"] .notyf__toast--success { --nt-ink: #6ee7b7; }
+[data-bs-theme="dark"] .notyf__toast--error   { --nt-ink: #fda4af; }
+[data-bs-theme="dark"] .notyf__toast--warning { --nt-ink: #fcd34d; }
+[data-bs-theme="dark"] .notyf__toast--info    { --nt-ink: #67e8f9; }
+
+/* dismiss: a small round button instead of a full-height bar */
+.notyf__dismiss {
+    position: static !important;
+    flex: 0 0 auto;
+    width: auto !important;
+    height: auto !important;
+    margin: 0 !important;
+}
+
+.notyf__dismiss-btn {
+    position: relative;
+    display: block;
+    width: 26px !important;
+    height: 26px !important;
+    padding: 0;
+    background: rgba(var(--nt-rgb), .12) !important;
+    border: 0;
+    border-radius: var(--radius-pill);
+    opacity: 1 !important;
+    cursor: pointer;
+    transition: background-color var(--t-smooth), transform var(--t-smooth);
+}
+
+.notyf__dismiss-btn:hover {
+    background: rgba(var(--nt-rgb), .24) !important;
+    transform: scale(1.08);
+}
+
+.notyf__dismiss-btn::before,
+.notyf__dismiss-btn::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 2px;
+    height: 12px;
+    margin: -6px 0 0 -1px;
+    background: var(--nt-ink) !important;
+    border-radius: 2px;
+}
+
+.notyf__dismiss-btn::before { transform: rotate(45deg); }
+.notyf__dismiss-btn::after  { transform: rotate(-45deg); }
+
+@media (max-width: 575.98px) {
+    .notyf { padding: .5rem; }
+    .notyf__wrapper { padding: .8rem .7rem .8rem 1rem !important; }
+}
+
+/* --------------------------------------------------------------------------
+   B. FLATPICKR
+   One consistent look: white surface, indigo/purple gradient for selection,
+   soft tinted hover/range, same radius, shadow and typography as the app.
+   -------------------------------------------------------------------------- */
+.flatpickr-calendar {
+    font-family: var(--bs-body-font-family);
+    color: var(--text);
+    background: var(--surface) !important;
+    border: 1.5px solid rgba(var(--primary-rgb), .3) !important;
+    border-radius: var(--radius-md) !important;
+    box-shadow: var(--shadow-xl) !important;
+    z-index: 1090;
+}
+
+.flatpickr-calendar.open {
+    z-index: 1090;
+}
+
+/* no pointer triangle */
+.flatpickr-calendar::before,
+.flatpickr-calendar::after {
+    display: none !important;
+}
+
+/* inputs that flatpickr turns readonly keep the normal control look */
+.flatpickr-input.form-control[readonly],
+.form-control.flatpickr-input,
+.form-control.input[readonly] {
+    background-color: var(--surface) !important;
+    color: var(--heading);
+}
+
+/* --- header ------------------------------------------------------------- */
+.flatpickr-months {
+    padding: .35rem .25rem 0;
+    background: transparent !important;
+}
+
+.flatpickr-months .flatpickr-month {
+    height: 46px;
+    color: var(--heading) !important;
+    fill: var(--heading) !important;
+    background: transparent !important;
+}
+
+/* Keep flatpickr's own layout for this element (absolute, 75% wide, centred).
+   Only colours/typography are changed so the month <select> stays clickable. */
+.flatpickr-current-month {
+    font-family: 'Ubuntu', sans-serif;
+    font-size: 1rem !important;
+    font-weight: 700;
+    color: var(--heading);
+    pointer-events: none;           /* let clicks pass through the empty gaps */
+    padding-top: 6px !important;
+    height: 38px !important;
+}
+
+/* ...but every real control inside is clickable again */
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month .numInputWrapper,
+.flatpickr-current-month input.cur-year {
+    pointer-events: auto !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months,
+.flatpickr-current-month input.cur-year {
+    color: var(--heading) !important;
+    background-color: transparent;
+    font-family: inherit;
+    font-size: 1rem;
+    font-weight: 700;
+    border-radius: var(--radius-sm);
+    transition: background-color var(--t-smooth);
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months {
+    position: relative;
+    z-index: 5;
+    height: auto;
+    margin: -1px .25rem 0 0;
+    padding: 2px 1.6rem 2px .5rem !important;
+    cursor: pointer;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-image: var(--chevron) !important;
+    background-repeat: no-repeat !important;
+    background-position: right .5rem center !important;
+    background-size: 10px !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover,
+.flatpickr-current-month .numInputWrapper:hover {
+    background-color: rgba(var(--primary-rgb), .08);
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months:hover {
+    background-color: rgba(var(--primary-rgb), .08) !important;
+}
+
+.flatpickr-current-month .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+    color: var(--heading);
+    background: var(--surface);
+}
+
+.numInputWrapper span {
+    border: 0 !important;
+    opacity: 0;
+}
+
+.numInputWrapper:hover span {
+    opacity: 1;
+    background: transparent;
+}
+
+.numInputWrapper span:hover {
+    background: rgba(var(--primary-rgb), .12) !important;
+}
+
+.numInputWrapper span.arrowUp::after {
+    border-bottom-color: var(--primary) !important;
+}
+
+.numInputWrapper span.arrowDown::after {
+    border-top-color: var(--primary) !important;
+}
+
+/* prev / next arrows */
+.flatpickr-months .flatpickr-prev-month,
+.flatpickr-months .flatpickr-next-month {
+    top: 8px !important;
+    width: 34px;
+    height: 34px;
+    padding: 0 !important;
+    display: grid;
+    place-items: center;
+    color: var(--primary-700) !important;
+    fill: var(--primary) !important;
+    background: rgba(var(--primary-rgb), .09);
+    border-radius: var(--radius-sm);
+    transition: background var(--t-smooth), transform var(--t-smooth);
+}
+
+.flatpickr-months .flatpickr-prev-month { left: 10px !important; }
+.flatpickr-months .flatpickr-next-month { right: 10px !important; }
+
+.flatpickr-months .flatpickr-prev-month svg,
+.flatpickr-months .flatpickr-next-month svg {
+    width: 12px;
+    height: 12px;
+    fill: var(--primary) !important;
+    transition: fill var(--t-smooth);
+}
+
+.flatpickr-months .flatpickr-prev-month:hover,
+.flatpickr-months .flatpickr-next-month:hover {
+    background: var(--gradient);
+    transform: translateY(-1px);
+}
+
+.flatpickr-months .flatpickr-prev-month:hover svg,
+.flatpickr-months .flatpickr-next-month:hover svg {
+    fill: #fff !important;
+}
+
+.flatpickr-months .flatpickr-prev-month.flatpickr-disabled,
+.flatpickr-months .flatpickr-next-month.flatpickr-disabled {
+    opacity: .4;
+}
+
+/* --- weekdays ------------------------------------------------------------ */
+.flatpickr-weekdays {
+    background: transparent !important;
+    height: 30px;
+}
+
+span.flatpickr-weekday {
+    color: var(--muted) !important;
+    background: transparent !important;
+    font-size: .7rem;
+    font-weight: 700;
+    letter-spacing: .05em;
+    text-transform: uppercase;
+}
+
+/* --- days ---------------------------------------------------------------- */
+.flatpickr-day {
+    color: var(--text-2);
+    max-width: 38px;
+    height: 38px;
+    line-height: 36px;
+    margin: 1px 0;
+    font-size: .88rem;
+    font-weight: 500;
+    background: transparent;
+    border: 1.5px solid transparent;
+    border-radius: var(--radius-sm);
+    transition: background-color .15s, color .15s, border-color .15s, box-shadow .15s;
+}
+
+.flatpickr-day:hover,
+.flatpickr-day:focus,
+.flatpickr-day.prevMonthDay:hover,
+.flatpickr-day.nextMonthDay:hover {
+    color: var(--primary-700);
+    background: rgba(var(--primary-rgb), .1);
+    border-color: transparent;
+}
+
+.flatpickr-day.prevMonthDay,
+.flatpickr-day.nextMonthDay {
+    color: var(--muted);
+    opacity: .55;
+}
+
+.flatpickr-day.today {
+    color: var(--primary-700);
+    font-weight: 700;
+    border-color: rgba(var(--primary-rgb), .55);
+    background: transparent;
+}
+
+.flatpickr-day.today:hover,
+.flatpickr-day.today:focus {
+    color: var(--primary-700);
+    background: rgba(var(--primary-rgb), .1);
+    border-color: rgba(var(--primary-rgb), .55);
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.startRange,
+.flatpickr-day.endRange,
+.flatpickr-day.selected:hover,
+.flatpickr-day.startRange:hover,
+.flatpickr-day.endRange:hover,
+.flatpickr-day.selected:focus,
+.flatpickr-day.startRange:focus,
+.flatpickr-day.endRange:focus,
+.flatpickr-day.selected.inRange,
+.flatpickr-day.startRange.inRange,
+.flatpickr-day.endRange.inRange,
+.flatpickr-day.selected.prevMonthDay,
+.flatpickr-day.selected.nextMonthDay,
+.flatpickr-day.startRange.prevMonthDay,
+.flatpickr-day.endRange.nextMonthDay {
+    color: #fff !important;
+    font-weight: 700;
+    background: var(--gradient) !important;
+    border-color: transparent !important;
+    box-shadow: 0 8px 16px -8px rgba(var(--primary-rgb), .75) !important;
+    opacity: 1;
+}
+
+.flatpickr-day.inRange,
+.flatpickr-day.prevMonthDay.inRange,
+.flatpickr-day.nextMonthDay.inRange,
+.flatpickr-day.today.inRange {
+    color: var(--primary-700);
+    background: rgba(var(--primary-rgb), .12) !important;
+    border-color: transparent !important;
+    box-shadow: -5px 0 0 rgba(var(--primary-rgb), .12), 5px 0 0 rgba(var(--primary-rgb), .12) !important;
+    border-radius: 0;
+}
+
+.flatpickr-day.selected.startRange + .endRange:not(:nth-child(7n+1)),
+.flatpickr-day.startRange.startRange + .endRange:not(:nth-child(7n+1)),
+.flatpickr-day.endRange.startRange + .endRange:not(:nth-child(7n+1)) {
+    box-shadow: -10px 0 0 rgba(var(--primary-rgb), .12) !important;
+}
+
+.flatpickr-day.flatpickr-disabled,
+.flatpickr-day.flatpickr-disabled:hover,
+.flatpickr-day.notAllowed,
+.flatpickr-day.notAllowed.prevMonthDay,
+.flatpickr-day.notAllowed.nextMonthDay {
+    color: var(--muted);
+    background: transparent;
+    border-color: transparent;
+    opacity: .35;
+    cursor: not-allowed;
+}
+
+/* week numbers */
+.flatpickr-weekwrapper .flatpickr-weeks {
+    box-shadow: 1px 0 0 var(--border);
+}
+
+.flatpickr-weekwrapper span.flatpickr-day,
+.flatpickr-weekwrapper span.flatpickr-day:hover {
+    color: var(--muted);
+    background: transparent;
+}
+
+/* --- time picker --------------------------------------------------------- */
+.flatpickr-time {
+    border-top: 1px solid var(--border) !important;
+    background: transparent;
+}
+
+.flatpickr-time input,
+.flatpickr-time .flatpickr-time-separator,
+.flatpickr-time .flatpickr-am-pm {
+    color: var(--heading) !important;
+    background: transparent;
+    font-family: inherit;
+    font-weight: 700;
+}
+
+.flatpickr-time input:hover,
+.flatpickr-time input:focus,
+.flatpickr-time .flatpickr-am-pm:hover,
+.flatpickr-time .flatpickr-am-pm:focus {
+    background: rgba(var(--primary-rgb), .09) !important;
+}
+
+.flatpickr-time .numInputWrapper span.arrowUp::after {
+    border-bottom-color: var(--primary);
+}
+
+.flatpickr-time .numInputWrapper span.arrowDown::after {
+    border-top-color: var(--primary);
+}
+
+/* --- dark theme ---------------------------------------------------------- */
+[data-bs-theme="dark"] .flatpickr-day.today,
+[data-bs-theme="dark"] .flatpickr-day:hover,
+[data-bs-theme="dark"] .flatpickr-day.inRange {
+    color: #c7d2fe;
+}
+
+/* --- mobile -------------------------------------------------------------- */
+@media (max-width: 575.98px) {
+    .flatpickr-calendar.open {
+        max-width: calc(100vw - 1rem);
+    }
+}

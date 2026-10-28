@@ -1,0 +1,156 @@
+@model ERP.Identity.Models.ViewModels.UserFormViewModel
+@{
+    var isEdit = !string.IsNullOrEmpty(Model.Id);
+    ViewData["Title"] = isEdit ? "Edit User" : "New User";
+    var bloodGroupOptions = ERP.Identity.Models.EmploymentOptions.BloodGroups;
+}
+
+<form asp-controller="Users" asp-action="Save" method="post" enctype="multipart/form-data" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-body">
+                    <partial name="_AvatarUpload" model="@Model.ExistingProfileImagePath" />
+                    <hr />
+                    <div class="mb-3">
+                        <label asp-for="SelectedRole" class="form-label"></label>
+                        <select asp-for="SelectedRole" class="form-select select2" data-placeholder="Assign a role">
+                            <option></option>
+                            @foreach (var role in Model.AvailableRoles)
+                            {
+                                <option value="@role" selected="@(role == Model.SelectedRole)">@role</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-check form-switch">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label">Active account</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header">
+                    <h3 class="card-title">Account Details</h3>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Password" class="form-label"></label>
+                            <input asp-for="Password" type="password" class="form-control" placeholder="@(isEdit ? "Leave blank to keep current password" : "")" />
+                            <span asp-validation-for="Password" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ConfirmPassword" class="form-label"></label>
+                            <input asp-for="ConfirmPassword" type="password" class="form-control" />
+                            <span asp-validation-for="ConfirmPassword" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control phone-input" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmployeeCode" class="form-label"></label>
+                            <input asp-for="EmployeeCode" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Designation" class="form-label"></label>
+                            <input asp-for="Designation" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Department" class="form-label"></label>
+                            <input asp-for="Department" class="form-control" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label asp-for="Gender" class="form-label"></label>
+                            <select asp-for="Gender" class="form-select select2" data-placeholder="Select gender">
+                                <option></option>
+                                <option>Male</option>
+                                <option>Female</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="BloodGroup" class="form-label"></label>
+                            <select asp-for="BloodGroup" class="form-select select2" data-placeholder="Select blood group">
+                                <option></option>
+                                @foreach (var bloodGroup in bloodGroupOptions)
+                                {
+                                    <option value="@bloodGroup">@bloodGroup</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="DateOfBirth" class="form-label"></label>
+                            <input asp-for="DateOfBirth" class="form-control datepicker" data-max-today="true" autocomplete="off" value="@Model.DateOfBirth?.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="JoiningDate" class="form-label"></label>
+                            <input asp-for="JoiningDate" class="form-control datepicker" autocomplete="off" value="@Model.JoiningDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NationalId" class="form-label"></label>
+                            <input asp-for="NationalId" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Country" class="form-label"></label>
+                            <select asp-for="Country" class="form-select select2" data-placeholder="Select country">
+                                <option></option>
+                                <option>Pakistan</option>
+                                <option>United States</option>
+                                <option>United Kingdom</option>
+                                <option>United Arab Emirates</option>
+                                <option>Saudi Arabia</option>
+                                <option>Canada</option>
+                                <option>Australia</option>
+                                <option>India</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="Users" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update User" : "Create User")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

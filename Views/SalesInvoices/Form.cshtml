@@ -1,0 +1,313 @@
+@model ERP.Identity.Models.ViewModels.Sales.SalesInvoiceViewModel
+@{
+    ViewData["Title"] = "New Sales Tax Invoice";
+}
+
+<form asp-controller="SalesInvoices" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header"><h3 class="card-title">Invoice Details</h3></div>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="InvoiceDate" class="form-label"></label>
+                    <input asp-for="InvoiceDate" id="invoiceDateInput" class="form-control datepicker" data-invoice-date autocomplete="off" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PaymentTermsDays" class="form-label"></label>
+                    <select asp-for="PaymentTermsDays" id="paymentTermsSelect" class="form-select select2" data-payment-terms>
+                        <option value="">Custom / Not Set</option>
+                        <option value="0">On Receipt</option>
+                        <option value="7">7 Days</option>
+                        <option value="15">15 Days</option>
+                        <option value="30">30 Days</option>
+                        <option value="45">45 Days</option>
+                        <option value="60">60 Days</option>
+                        <option value="75">75 Days</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DueDate" class="form-label"></label>
+                    <input asp-for="DueDate" id="dueDateInput" class="form-control datepicker" data-due-date autocomplete="off" value="@Model.DueDate?.ToString("yyyy-MM-dd")" />
+                    <div class="form-text">Auto-calculated from Payment Terms — still editable.</div>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="SaleOrderId" class="form-label"></label>
+                    <select asp-for="SaleOrderId" id="soSelect" class="form-select select2" data-placeholder="Select a SO to auto-fill">
+                        <option></option>
+                        @foreach (var s in Model.SaleOrders) { <option value="@s.Id">@s.SONumber</option> }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DeliveryChallanId" class="form-label"></label>
+                    <select asp-for="DeliveryChallanId" id="dcSelect" class="form-select select2" data-placeholder="Or select a challan to auto-fill">
+                        <option></option>
+                        @foreach (var d in Model.DeliveryChallans) { <option value="@d.Id">@d.ChallanNo</option> }
+                    </select>
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="CustomerId" class="form-label"></label>
+                    <select asp-for="CustomerId" id="customerSelect" class="form-select select2" data-placeholder="Select customer">
+                        <option></option>
+                        @foreach (var c in Model.Customers) { <option value="@c.Id" data-terms="@c.PaymentTermsDays">@c.Name (@c.CustomerCode)</option> }
+                    </select>
+                    <span asp-validation-for="CustomerId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CustomerPONumbers" class="form-label"></label>
+                    <input asp-for="CustomerPONumbers" type="hidden" id="customerPoHidden" />
+                    <select multiple id="customerPoTags" class="form-control"></select>
+                    <div class="form-text">Type a PO number and press Enter — add as many as the customer issued.</div>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Remarks" class="form-label"></label>
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+            <div class="form-text mt-2">Selecting a Sale Order or Delivery Challan fills the customer and product lines below automatically — everything stays editable afterward.</div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Products</h3>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Row</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table align-middle mb-0" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width:24%">Product</th>
+                        <th style="width:10%">Quantity</th>
+                        <th style="width:12%">Unit Price</th>
+                        <th style="width:11%">Sales Tax</th>
+                        <th style="width:13%">Amount (Rs.)</th>
+                        <th style="width:20%">Remarks</th>
+                        <th style="width:10%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end">Sub Total</td>
+                        <td id="subTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end">Sales Tax</td>
+                        <td id="taxTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Total Net Amount</td>
+                        <td class="fw-bold" id="grossTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="SalesInvoices" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products ?? new List<ERP.Identity.Models.ViewModels.Inventory.ProductOption>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })) || [];
+            const SALES_TAX_OPTIONS = [16, 17, 18, 19];
+            let rowIndex = 0;
+
+            function productSelectOptions() {
+                return productOptions.map(function (p) { return `<option value="${p.id}">${p.name} (${p.code || p.sku})</option>`; }).join('');
+            }
+
+            function taxSelectOptions() {
+                return '<option value="">No Tax</option>' + SALES_TAX_OPTIONS.map(function (t) { return `<option value="${t}">${t}%</option>`; }).join('');
+            }
+
+            function addItemRow(prefill) {
+                const tbody = document.querySelector('#itemsTable tbody');
+                const tr = document.createElement('tr');
+                const qty = prefill ? prefill.quantity : '';
+                const price = prefill && prefill.unitPrice ? prefill.unitPrice : '';
+                tr.innerHTML = `
+                    <td>
+                        <select name="Items[${rowIndex}].ProductId" class="form-select select2-row" data-placeholder="Select product">
+                            <option></option>
+                            ${productSelectOptions()}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="0.001" min="0.001" name="Items[${rowIndex}].Quantity" class="form-control row-qty" value="${qty}" />
+                        <div class="packing-hint small text-muted mt-1"></div>
+                    </td>
+                    <td><input type="number" step="0.01" min="0" name="Items[${rowIndex}].UnitPrice" class="form-control row-price" value="${price}" /></td>
+                    <td>
+                        <select name="Items[${rowIndex}].TaxRate" class="form-select row-tax">
+                            ${taxSelectOptions()}
+                        </select>
+                    </td>
+                    <td class="row-amount fw-semibold">0.00</td>
+                    <td><input type="text" name="Items[${rowIndex}].Remarks" class="form-control" /></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                if (window.jQuery && jQuery.fn.select2) {
+                    const sel = jQuery(tr).find('.select2-row');
+                    sel.select2({ theme: 'bootstrap-5', width: '100%' });
+                    if (prefill) sel.val(prefill.productId).trigger('change');
+
+                    sel.on('select2:select change', function () {
+                        const product = productOptions.find(p => String(p.id) === String(this.value));
+                        if (!product) return;
+
+                        const priceInput = tr.querySelector('.row-price');
+                        if (product.salePrice > 0 && !priceInput.value) {
+                            priceInput.value = product.salePrice;
+                            recalcRow(tr);
+                        }
+
+                        tr.dataset.packingUnit = product.packingUnitName || '';
+                        tr.dataset.packingQty = product.packingQuantity || '';
+                        updatePackingHint(tr);
+                    });
+                }
+                recalcRow(tr);
+                rowIndex++;
+            }
+
+            function clearRows() {
+                document.querySelector('#itemsTable tbody').innerHTML = '';
+                rowIndex = 0;
+                recalcTotals();
+            }
+
+            function updatePackingHint(row) {
+                const hint = row.querySelector('.packing-hint');
+                if (!hint) return;
+                const packingQty = parseFloat(row.dataset.packingQty) || 0;
+                const unitName = row.dataset.packingUnit || '';
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+
+                if (packingQty > 0 && unitName && qty > 0) {
+                    hint.textContent = `≈ ${(qty / packingQty).toFixed(2)} ${unitName}(s)`;
+                } else {
+                    hint.textContent = '';
+                }
+            }
+
+            function recalcRow(row) {
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                const taxPct = parseFloat(row.querySelector('.row-tax').value) || 0;
+                const amount = qty * price * (1 + taxPct / 100);
+                row.querySelector('.row-amount').textContent = amount.toFixed(2);
+                recalcTotals();
+            }
+
+            function recalcTotals() {
+                let subTotal = 0, grossTotal = 0;
+                document.querySelectorAll('#itemsTable tbody tr').forEach(function (row) {
+                    const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                    subTotal += qty * price;
+                    grossTotal += parseFloat(row.querySelector('.row-amount').textContent) || 0;
+                });
+                document.getElementById('subTotalCell').textContent = subTotal.toFixed(2);
+                document.getElementById('taxTotalCell').textContent = (grossTotal - subTotal).toFixed(2);
+                document.getElementById('grossTotalCell').textContent = grossTotal.toFixed(2);
+            }
+
+            document.getElementById('addRowBtn').addEventListener('click', function () { addItemRow(); });
+
+            document.querySelector('#itemsTable tbody').addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                if (document.querySelectorAll('#itemsTable tbody tr').length <= 1) {
+                    notyf.error('At least one product row is required.');
+                    return;
+                }
+                btn.closest('tr').remove();
+                recalcTotals();
+            });
+
+            document.querySelector('#itemsTable tbody').addEventListener('input', function (e) {
+                if (e.target.classList.contains('row-qty') || e.target.classList.contains('row-price')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+                if (e.target.classList.contains('row-qty')) {
+                    updatePackingHint(e.target.closest('tr'));
+                }
+            });
+            document.querySelector('#itemsTable tbody').addEventListener('change', function (e) {
+                if (e.target.classList.contains('row-tax')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+            });
+
+            function populateFrom(url, label) {
+                fetch(url)
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        jQuery('#customerSelect').val(data.customerId).trigger('change');
+                        if (data.saleOrderId !== undefined) {
+                            jQuery('#soSelect').val(data.saleOrderId || '').trigger('change.select2');
+                        }
+                        if (data.customerPoNumbers !== undefined) {
+                            const poNumbers = (data.customerPoNumbers || '').split(',').map(value => value.trim()).filter(Boolean);
+                            const poSelect = document.getElementById('customerPoTags');
+                            jQuery(poSelect).empty();
+                            poNumbers.forEach(value => poSelect.add(new Option(value, value, true, true)));
+                            jQuery(poSelect).trigger('change');
+                        }
+
+                        clearRows();
+                        if (data.items && data.items.length) {
+                            data.items.forEach(item => addItemRow({ productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice }));
+                        } else {
+                            addItemRow();
+                        }
+                        notyf.success('Invoice pre-filled from ' + label);
+                    })
+                    .catch(() => notyf.error('Could not load details.'));
+            }
+
+            jQuery('#soSelect').on('change', function () {
+                const soId = this.value;
+                if (!soId) return;
+                populateFrom(`/Sales/Orders/GetDetails/${soId}`, jQuery('#soSelect option:selected').text());
+            });
+
+            jQuery('#dcSelect').on('change', function () {
+                const dcId = this.value;
+                if (!dcId) return;
+                populateFrom(`/Sales/DeliveryChallans/GetDetails/${dcId}`, jQuery('#dcSelect option:selected').text());
+            });
+
+            // If Payment Terms hasn't been touched yet, default it to the selected
+            // customer's own standard terms (still fully overridable).
+            jQuery('#customerSelect').on('change', function () {
+                const termsSelect = document.getElementById('paymentTermsSelect');
+                if (termsSelect.value !== '') return;
+
+                const selected = this.options[this.selectedIndex];
+                const defaultTerms = selected ? selected.getAttribute('data-terms') : null;
+                if (defaultTerms !== null && defaultTerms !== '') {
+                    if (!Array.from(termsSelect.options).some(option => option.value === defaultTerms)) {
+                        termsSelect.add(new Option(`${defaultTerms} Days`, defaultTerms));
+                    }
+                    jQuery(termsSelect).val(defaultTerms).trigger('change');
+                }
+            });
+
+            initTagsToHiddenField('customerPoHidden', 'customerPoTags', 'Type a PO number and press Enter');
+            setTimeout(function () { addItemRow(); }, 0);
+        });
+    </script>
+}

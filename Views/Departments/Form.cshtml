@@ -1,0 +1,78 @@
+@model ERP.Identity.Models.ViewModels.Payroll.DepartmentFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Department" : "New Department";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <form asp-controller="Departments" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Department Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Code" class="form-label"></label>
+                            <input asp-for="Code" class="form-control" placeholder="e.g. FIN" />
+                            <span asp-validation-for="Code" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ParentDepartmentId" class="form-label"></label>
+                            <select asp-for="ParentDepartmentId" class="form-select select2" data-placeholder="None — top level">
+                                <option></option>
+                                @foreach (var d in Model.ParentOptions)
+                                {
+                                    <option value="@d.Id" selected="@(d.Id == Model.ParentDepartmentId)">@d.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="ParentDepartmentId" class="text-danger small"></span>
+                            <div class="form-text">Leave empty to make this a top-level department.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="HeadEmployeeId" class="form-label"></label>
+                            <select asp-for="HeadEmployeeId" class="form-select select2" data-placeholder="Select department head">
+                                <option></option>
+                                @foreach (var emp in Model.Employees)
+                                {
+                                    <option value="@emp.Id" selected="@(emp.Id == Model.HeadEmployeeId)">@emp.Name (@emp.EmployeeCode)</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        </div>
+
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" role="switch" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="Departments" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update Department" : "Create Department")
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

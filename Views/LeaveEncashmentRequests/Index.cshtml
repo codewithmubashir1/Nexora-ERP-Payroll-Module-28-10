@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Leave Encashment Requests";
+
+    var page = new ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+    {
+        Controller = "LeaveEncashmentRequests",
+        Title = "Leave Encashment Requests",
+        NewButtonText = "New Request",
+        CategoryLabel = "Leave Type",
+        DetailLabel = "Days",
+        ShowAmount = true,
+        CanApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove,
+        HelpText = "The amount is fixed when the request is submitted, at (basic salary / 30) x days, so a later increment does not change it."
+    };
+}
+
+<partial name="_RequestList" model="page" />
+
+@section Scripts {
+    <partial name="_RequestListScripts" model="page" />
+}

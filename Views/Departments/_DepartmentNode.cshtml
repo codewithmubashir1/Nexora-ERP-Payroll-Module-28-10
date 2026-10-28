@@ -1,0 +1,33 @@
+@model ERP.Identity.Models.ViewModels.Payroll.DepartmentNodeViewModel
+
+<li class="dept-node">
+    <div class="dept-card d-flex justify-content-between align-items-center @(Model.IsActive ? "" : "opacity-50")">
+        <div>
+            <span class="fw-semibold">@Model.Name</span>
+            @if (!string.IsNullOrEmpty(Model.Code))
+            {
+                <span class="badge bg-light text-dark ms-1">@Model.Code</span>
+            }
+            @if (!Model.IsActive)
+            {
+                <span class="badge bg-secondary ms-1">Inactive</span>
+            }
+            <div class="small text-muted">
+                Head: @(Model.HeadName ?? "—") &middot; @Model.EmployeeCount employee(s)
+            </div>
+        </div>
+        <a href="/Payroll/Departments/Edit/@Model.Id" class="btn btn-sm btn-outline-primary" title="Edit">
+            <i class="fa-solid fa-pen"></i>
+        </a>
+    </div>
+
+    @if (Model.Children.Count > 0)
+    {
+        <ul class="dept-tree">
+            @foreach (var child in Model.Children)
+            {
+                <partial name="_DepartmentNode" model="child" />
+            }
+        </ul>
+    }
+</li>

@@ -1,0 +1,99 @@
+@model ERP.Identity.Models.ViewModels.Payroll.ShiftTimingFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Shift" : "New Shift";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-6">
+        <form asp-controller="ShiftTimings" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Shift Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-12">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" placeholder="e.g. 08 Hours" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="StartTime" class="form-label"></label>
+                            <input asp-for="StartTime" id="startTime" type="time" class="form-control" />
+                            <span asp-validation-for="StartTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="EndTime" class="form-label"></label>
+                            <input asp-for="EndTime" id="endTime" type="time" class="form-control" />
+                            <span asp-validation-for="EndTime" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BreakMinutes" class="form-label"></label>
+                            <input asp-for="BreakMinutes" id="breakMinutes" type="number" min="0" max="360" class="form-control" />
+                            <span asp-validation-for="BreakMinutes" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Shift Length</label>
+                            <input id="shiftHours" class="form-control fw-semibold" readonly disabled value="—" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="GracePeriodMinutes" class="form-label"></label>
+                            <input asp-for="GracePeriodMinutes" type="number" min="0" max="240" class="form-control" />
+                            <span asp-validation-for="GracePeriodMinutes" class="text-danger small"></span>
+                            <div class="form-text">Minutes after the start time before a check-in is marked late.</div>
+                        </div>
+                        <div class="col-md-6 d-flex align-items-end">
+                            <div class="form-check form-switch mb-2">
+                                <input asp-for="IsActive" class="form-check-input" role="switch" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="alert alert-light border mt-3 mb-0 small">
+                        Break minutes are excluded from paid attendance hours. A shift that ends before it starts crosses midnight.
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="ShiftTimings" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update Shift" : "Create Shift")
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function toMinutes(value) {
+            if (!value) return null;
+            const parts = value.split(':');
+            return (parseInt(parts[0], 10) * 60) + parseInt(parts[1], 10);
+        }
+
+        function updateHours() {
+            const start = toMinutes(document.getElementById('startTime').value);
+            const end = toMinutes(document.getElementById('endTime').value);
+            const out = document.getElementById('shiftHours');
+
+            if (start === null || end === null || start === end) { out.value = '—'; return; }
+
+            const span = end > start ? end - start : (1440 - start) + end;
+            const breakMinutes = parseInt(document.getElementById('breakMinutes').value, 10) || 0;
+            out.value = (Math.max(0, span - breakMinutes) / 60).toFixed(2) + ' net hours';
+        }
+
+        document.getElementById('startTime').addEventListener('change', updateHours);
+        document.getElementById('endTime').addEventListener('change', updateHours);
+        document.getElementById('breakMinutes').addEventListener('input', updateHours);
+        updateHours();
+    </script>
+}

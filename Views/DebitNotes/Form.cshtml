@@ -1,0 +1,264 @@
+@model ERP.Identity.Models.ViewModels.Purchase.DebitNoteViewModel
+@{
+    ViewData["Title"] = "New Debit Note";
+}
+
+<form asp-controller="DebitNotes" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header"><h3 class="card-title">Debit Note Details</h3></div>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="DebitNoteDate" class="form-label"></label>
+                    <input asp-for="DebitNoteDate" class="form-control datepicker" autocomplete="off" value="@Model.DebitNoteDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="VendorId" class="form-label"></label>
+                    <select asp-for="VendorId" id="vendorSelect" class="form-select select2" data-placeholder="Select vendor">
+                        <option></option>
+                        @foreach (var v in Model.Vendors) { <option value="@v.Id">@v.Name (@v.VendorCode)</option> }
+                    </select>
+                    <span asp-validation-for="VendorId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Reason" class="form-label"></label>
+                    <select asp-for="Reason" class="form-select select2" data-placeholder="Select reason">
+                        <option></option>
+                        <option>Damaged Goods</option>
+                        <option>Short Quantity</option>
+                        <option>Quality Rejection</option>
+                        <option>Price Difference</option>
+                        <option>Other</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="LocationId" class="form-label"></label>
+                    <select asp-for="LocationId" class="form-select select2" data-placeholder="Optional — return location">
+                        <option></option>
+                        @foreach (var l in Model.Locations) { <option value="@l.Id">@l.Name</option> }
+                    </select>
+                    <div class="form-text">Set this only if goods are physically returned — stock will be reduced on approval.</div>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="PurchaseInvoiceId" class="form-label"></label>
+                    <select asp-for="PurchaseInvoiceId" id="invoiceSelect" class="form-select select2" data-placeholder="Optional — select to auto-fill">
+                        <option></option>
+                        @foreach (var i in Model.Invoices) { <option value="@i.Id">@i.InvoiceNumber</option> }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="GoodsReceiptNoteId" class="form-label"></label>
+                    <select asp-for="GoodsReceiptNoteId" id="grnSelect" class="form-select select2" data-placeholder="Or select a GRN to auto-fill">
+                        <option></option>
+                        @foreach (var g in Model.GRNs) { <option value="@g.Id">@g.GRNNumber</option> }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="Remarks" class="form-label"></label>
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Products</h3>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Row</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table align-middle mb-0" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width:26%">Product</th>
+                        <th style="width:12%">Quantity</th>
+                        <th style="width:14%">Unit Price</th>
+                        <th style="width:12%">Sales Tax</th>
+                        <th style="width:14%">Amount (Rs.)</th>
+                        <th style="width:16%">Remarks</th>
+                        <th style="width:6%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Grand Total</td>
+                        <td class="fw-bold" id="grandTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="DebitNotes" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products ?? new List<ERP.Identity.Models.ViewModels.Inventory.ProductOption>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })) || [];
+            const SALES_TAX_OPTIONS = [16, 17, 18, 19];
+            let rowIndex = 0;
+
+            function productSelectOptions() {
+                return productOptions.map(function (p) { return `<option value="${p.id}">${p.name} (${p.code || p.sku})</option>`; }).join('');
+            }
+
+            function taxSelectOptions() {
+                return '<option value="">No Tax</option>' + SALES_TAX_OPTIONS.map(function (t) { return `<option value="${t}">${t}%</option>`; }).join('');
+            }
+
+            function addItemRow(prefill) {
+                const tbody = document.querySelector('#itemsTable tbody');
+                const tr = document.createElement('tr');
+                const qty = prefill ? prefill.quantity : '';
+                const price = prefill && prefill.unitPrice ? prefill.unitPrice : '';
+                tr.innerHTML = `
+                    <td>
+                        <select name="Items[${rowIndex}].ProductId" class="form-select select2-row" data-placeholder="Select product">
+                            <option></option>
+                            ${productSelectOptions()}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="0.001" min="0.001" name="Items[${rowIndex}].Quantity" class="form-control row-qty" value="${qty}" />
+                        <div class="packing-hint small text-muted mt-1"></div>
+                    </td>
+                    <td><input type="number" step="0.01" min="0" name="Items[${rowIndex}].UnitPrice" class="form-control row-price" value="${price}" /></td>
+                    <td>
+                        <select name="Items[${rowIndex}].SalesTaxRate" class="form-select row-tax">
+                            ${taxSelectOptions()}
+                        </select>
+                    </td>
+                    <td class="row-amount fw-semibold">0.00</td>
+                    <td><input type="text" name="Items[${rowIndex}].Remarks" class="form-control" /></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                if (window.jQuery && jQuery.fn.select2) {
+                    const sel = jQuery(tr).find('.select2-row');
+                    sel.select2({ theme: 'bootstrap-5', width: '100%' });
+                    if (prefill) sel.val(prefill.productId).trigger('change');
+
+                    sel.on('select2:select change', function () {
+                        const product = productOptions.find(p => String(p.id) === String(this.value));
+                        if (!product) return;
+
+                        const priceInput = tr.querySelector('.row-price');
+                        if (product.costPrice > 0 && !priceInput.value) {
+                            priceInput.value = product.costPrice;
+                            recalcRow(tr);
+                        }
+
+                        tr.dataset.packingUnit = product.packingUnitName || '';
+                        tr.dataset.packingQty = product.packingQuantity || '';
+                        updatePackingHint(tr);
+                    });
+                }
+                recalcRow(tr);
+                rowIndex++;
+            }
+
+            function clearRows() {
+                document.querySelector('#itemsTable tbody').innerHTML = '';
+                rowIndex = 0;
+                recalcGrandTotal();
+            }
+
+            function updatePackingHint(row) {
+                const hint = row.querySelector('.packing-hint');
+                if (!hint) return;
+                const packingQty = parseFloat(row.dataset.packingQty) || 0;
+                const unitName = row.dataset.packingUnit || '';
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+
+                if (packingQty > 0 && unitName && qty > 0) {
+                    hint.textContent = `≈ ${(qty / packingQty).toFixed(2)} ${unitName}(s)`;
+                } else {
+                    hint.textContent = '';
+                }
+            }
+
+            function recalcRow(row) {
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                const taxPct = parseFloat(row.querySelector('.row-tax').value) || 0;
+                const amount = qty * price * (1 + taxPct / 100);
+                row.querySelector('.row-amount').textContent = amount.toFixed(2);
+                recalcGrandTotal();
+            }
+
+            function recalcGrandTotal() {
+                let total = 0;
+                document.querySelectorAll('#itemsTable tbody .row-amount').forEach(function (cell) {
+                    total += parseFloat(cell.textContent) || 0;
+                });
+                document.getElementById('grandTotalCell').textContent = total.toFixed(2);
+            }
+
+            document.getElementById('addRowBtn').addEventListener('click', addItemRow);
+
+            document.querySelector('#itemsTable tbody').addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                if (document.querySelectorAll('#itemsTable tbody tr').length <= 1) {
+                    notyf.error('At least one product row is required.');
+                    return;
+                }
+                btn.closest('tr').remove();
+                recalcGrandTotal();
+            });
+
+            document.querySelector('#itemsTable tbody').addEventListener('input', function (e) {
+                if (e.target.classList.contains('row-qty') || e.target.classList.contains('row-price')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+                if (e.target.classList.contains('row-qty')) {
+                    updatePackingHint(e.target.closest('tr'));
+                }
+            });
+            document.querySelector('#itemsTable tbody').addEventListener('change', function (e) {
+                if (e.target.classList.contains('row-tax')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+            });
+
+            function populateFrom(url, label) {
+                fetch(url)
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        jQuery('#vendorSelect').val(data.vendorId).trigger('change');
+                        clearRows();
+                        if (data.items && data.items.length) {
+                            data.items.forEach(item => addItemRow({ productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice }));
+                        } else {
+                            addItemRow();
+                        }
+                        notyf.success('Debit note pre-filled from ' + label);
+                    })
+                    .catch(() => notyf.error('Could not load details.'));
+            }
+
+            jQuery('#invoiceSelect').on('change', function () {
+                const invId = this.value;
+                if (!invId) return;
+                populateFrom(`/Purchase/Invoices/GetDetails/${invId}`, jQuery('#invoiceSelect option:selected').text());
+            });
+
+            jQuery('#grnSelect').on('change', function () {
+                const grnId = this.value;
+                if (!grnId) return;
+                populateFrom(`/Purchase/GRN/GetDetails/${grnId}`, jQuery('#grnSelect option:selected').text());
+            });
+
+            setTimeout(addItemRow, 0);
+        });
+    </script>
+}

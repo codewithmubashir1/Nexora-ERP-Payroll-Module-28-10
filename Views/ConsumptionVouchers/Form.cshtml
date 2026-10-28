@@ -1,0 +1,123 @@
+@model ERP.Identity.Models.ViewModels.Inventory.ConsumptionVoucherViewModel
+@{
+    ViewData["Title"] = "New Consumption Voucher";
+}
+
+<form asp-controller="ConsumptionVouchers" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header"><h3 class="card-title">Voucher Details</h3></div>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="VoucherDate" class="form-label"></label>
+                    <input asp-for="VoucherDate" class="form-control datepicker" autocomplete="off" value="@Model.VoucherDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="LocationId" class="form-label"></label>
+                    <select asp-for="LocationId" class="form-select select2" data-placeholder="Select location">
+                        <option></option>
+                        @foreach (var l in Model.Locations)
+                        {
+                            <option value="@l.Id">@l.Name</option>
+                        }
+                    </select>
+                    <span asp-validation-for="LocationId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="Department" class="form-label"></label>
+                    <input asp-for="Department" class="form-control" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="IssuedTo" class="form-label"></label>
+                    <input asp-for="IssuedTo" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Purpose" class="form-label"></label>
+                    <input asp-for="Purpose" class="form-control" />
+                </div>
+                <div class="col-md-6">
+                    <label asp-for="Remarks" class="form-label"></label>
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Products</h3>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm">
+                <i class="fa-solid fa-plus me-1"></i> Add Row
+            </button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table align-middle mb-0" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width:40%">Product</th>
+                        <th style="width:20%">Quantity</th>
+                        <th style="width:30%">Remarks</th>
+                        <th style="width:10%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="ConsumptionVouchers" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Post Voucher</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products ?? new List<ERP.Identity.Models.ViewModels.Inventory.ProductOption>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })) || [];
+            let rowIndex = 0;
+
+            function productSelectOptions() {
+                return productOptions.map(function (p) { return `<option value="${p.id}">${p.name} (${p.code || p.sku})</option>`; }).join('');
+            }
+
+            function addItemRow() {
+                const tbody = document.querySelector('#itemsTable tbody');
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>
+                        <select name="Items[${rowIndex}].ProductId" class="form-select select2-row" data-placeholder="Select product">
+                            <option></option>
+                            ${productSelectOptions()}
+                        </select>
+                    </td>
+                    <td><input type="number" step="0.001" min="0.001" name="Items[${rowIndex}].Quantity" class="form-control" /></td>
+                    <td><input type="text" name="Items[${rowIndex}].Remarks" class="form-control" /></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                if (window.jQuery && jQuery.fn.select2) {
+                    jQuery(tr).find('.select2-row').select2({ theme: 'bootstrap-5', width: '100%' });
+                }
+                rowIndex++;
+            }
+
+            document.getElementById('addRowBtn').addEventListener('click', addItemRow);
+
+            document.querySelector('#itemsTable tbody').addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                if (document.querySelectorAll('#itemsTable tbody tr').length <= 1) {
+                    notyf.error('At least one product row is required.');
+                    return;
+                }
+                btn.closest('tr').remove();
+            });
+
+            setTimeout(addItemRow, 0);
+        });
+    </script>
+}

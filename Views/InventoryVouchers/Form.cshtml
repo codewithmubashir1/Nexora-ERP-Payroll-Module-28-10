@@ -1,0 +1,70 @@
+@model ERP.Identity.Models.ViewModels.Accounts.InventoryVoucherViewModel
+@{
+    ViewData["Title"] = "New Inventory Voucher";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <form asp-controller="InventoryVouchers" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Inventory Voucher</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="form-text mb-3">Books the accounting impact of an inventory valuation change. This is separate from Inventory's Item Adjustment Note, which records the physical stock-quantity movement — a write-off typically needs both.</div>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="VoucherDate" class="form-label"></label>
+                            <input asp-for="VoucherDate" class="form-control datepicker" autocomplete="off" value="@Model.VoucherDate.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="VoucherType" class="form-label"></label>
+                            <select asp-for="VoucherType" class="form-select select2">
+                                <option value="0">Increase (stock value goes up)</option>
+                                <option value="1">Decrease (write-off / damage / shrinkage)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <input asp-for="Amount" type="number" step="0.01" min="0.01" class="form-control" />
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="InventoryAccountId" class="form-label"></label>
+                            <select asp-for="InventoryAccountId" class="form-select select2" data-placeholder="Select inventory account">
+                                <option></option>
+                                @foreach (var a in Model.InventoryAccounts) { <option value="@a.Id">@a.AccountCode — @a.AccountName</option> }
+                            </select>
+                            <span asp-validation-for="InventoryAccountId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ContraAccountId" class="form-label"></label>
+                            <select asp-for="ContraAccountId" class="form-select select2" data-placeholder="e.g. Inventory Write-off Expense">
+                                <option></option>
+                                @foreach (var a in Model.ContraAccounts) { <option value="@a.Id">@a.AccountCode — @a.AccountName</option> }
+                            </select>
+                            <span asp-validation-for="ContraAccountId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ItemAdjustmentNoteId" class="form-label"></label>
+                            <select asp-for="ItemAdjustmentNoteId" class="form-select select2" data-placeholder="Optional — link the physical adjustment note">
+                                <option></option>
+                                @foreach (var n in Model.AdjustmentNotes) { <option value="@n.Id">@n.AdjustmentNo</option> }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Narration" class="form-label"></label>
+                            <input asp-for="Narration" class="form-control" placeholder="Reason for this posting" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="InventoryVouchers" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

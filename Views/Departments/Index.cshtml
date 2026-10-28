@@ -1,0 +1,71 @@
+@{
+    ViewData["Title"] = "Departments";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Departments</h3>
+        <div class="d-flex gap-2">
+            <a asp-controller="Departments" asp-action="Hierarchy" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-diagram-project me-1"></i> Hierarchy
+            </a>
+            <a asp-controller="Departments" asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-plus me-1"></i> New Department
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table id="departmentsTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Parent</th>
+                    <th>Head</th>
+                    <th class="text-end">Employees</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        jQuery(function () {
+            const table = jQuery('#departmentsTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "Departments")', dataSrc: 'data' },
+                order: [[1, 'asc']],
+                columns: [
+                    { data: 'code', render: d => d || '—' },
+                    { data: 'name' },
+                    { data: 'parentName', render: d => d || '<span class="text-muted">Top level</span>' },
+                    { data: 'headName', render: d => d || '—' },
+                    { data: 'employeeCount', className: 'text-end' },
+                    {
+                        data: 'isActive',
+                        render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'
+                    },
+                    {
+                        data: 'id', orderable: false,
+                        render: id => `
+                            <div class="text-end">
+                                <a href="/Payroll/Departments/Edit/${id}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                            </div>`
+                    }
+                ]
+            });
+
+            jQuery('#departmentsTable tbody').on('click', '.btn-delete', function () {
+                const id = jQuery(this).data('id');
+                confirmDelete('@Url.Action("Delete", "Departments")', token, function () { table.ajax.reload(); }, { id: id });
+            });
+        });
+    </script>
+}

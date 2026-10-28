@@ -1,0 +1,170 @@
+@model ERP.Identity.Models.ViewModels.Payroll.PayRunCreateViewModel
+@{
+    ViewData["Title"] = "New Pay Run";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Pay Run Scope</h3></div>
+    <form asp-controller="PayRuns" asp-action="Preview" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label asp-for="Month" class="form-label"></label>
+                    <select asp-for="Month" class="form-select">
+                        @for (var m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == Model.Month)">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Year" class="form-label"></label>
+                    <select asp-for="Year" class="form-select">
+                        @for (var y = DateTime.Today.Year - 5; y <= DateTime.Today.Year + 1; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.Year)">@y</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="DepartmentId" class="form-label"></label>
+                    <select asp-for="DepartmentId" class="form-select select2" data-placeholder="All departments">
+                        <option value="">All departments</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            <option value="@d.Id" selected="@(d.Id == Model.DepartmentId)">@d.Name</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input asp-for="IncludeOvertimeInNetPay" class="form-check-input" role="switch" />
+                        <label asp-for="IncludeOvertimeInNetPay" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="form-check form-switch">
+                        <input asp-for="PayImmediately" id="payImmediately" class="form-check-input" role="switch" />
+                        <label asp-for="PayImmediately" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="col-md-8">
+                    <label asp-for="PaymentAccountId" class="form-label"></label>
+                    <select asp-for="PaymentAccountId" id="paymentAccountSelect" class="form-select select2" data-placeholder="Choose a cash or bank account">
+                        <option value="">Select when paying immediately</option>
+                        @foreach (var account in Model.PaymentAccounts)
+                        {
+                            <option value="@account.Id" selected="@(account.Id == Model.PaymentAccountId)">@account.AccountCode · @account.AccountName</option>
+                        }
+                    </select>
+                    <span asp-validation-for="PaymentAccountId" class="text-danger small"></span>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="PayRuns" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calculator me-1"></i> Calculate Preview</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.HasPreview && Model.Preview.Count > 0)
+{
+    var eligible = Model.Preview.Where(p => !p.AlreadyGenerated).ToList();
+
+    <div class="row">
+        <div class="col-md-4">
+            <div class="small-box bg-primary">
+                <div class="inner"><h3>@eligible.Count</h3><p>Payslips to create</p></div>
+                <div class="icon"><i class="fa-solid fa-users"></i></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="small-box bg-warning">
+                <div class="inner"><h3 style="font-size:1.5rem;">@eligible.Sum(p => p.TotalDeductions).ToString("N0")</h3><p>Total deductions</p></div>
+                <div class="icon"><i class="fa-solid fa-scissors"></i></div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="small-box bg-success">
+                <div class="inner"><h3 style="font-size:1.5rem;">@eligible.Sum(p => p.NetPay).ToString("N0")</h3><p>Total net payable</p></div>
+                <div class="icon"><i class="fa-solid fa-sack-dollar"></i></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header">
+            <h3 class="card-title">Preview &mdash; @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))</h3>
+        </div>
+        <div class="card-body table-responsive">
+            <table class="table table-sm table-hover align-middle">
+                <thead>
+                    <tr>
+                        <th>Employee</th>
+                        <th>Department</th>
+                        <th class="text-end">Basic</th>
+                        <th class="text-end">Days</th>
+                        <th class="text-end">Earned</th>
+                        <th class="text-end">OT Amount</th>
+                        <th class="text-end">Adv. Deducted</th>
+                        <th class="text-end">Fixed Ded.</th>
+                        <th class="text-end">Net Pay</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @foreach (var p in Model.Preview)
+                    {
+                        <tr class="@(p.AlreadyGenerated ? "table-warning" : "")">
+                            <td>
+                                <div>@p.EmployeeName</div>
+                                <small class="text-muted">@p.EmployeeCode</small>
+                            </td>
+                            <td class="small text-muted">@(p.DepartmentName ?? "—")</td>
+                            <td class="text-end">@p.BasicSalary.ToString("N2")</td>
+                            <td class="text-end">@p.WorkingDays</td>
+                            <td class="text-end">@p.EarnedBasic.ToString("N2")</td>
+                            <td class="text-end">@p.OvertimeAmount.ToString("N2")</td>
+                            <td class="text-end">@p.AdvanceDeducted.ToString("N2")</td>
+                            <td class="text-end">@p.FixedMonthlyDeduction.ToString("N2")</td>
+                            <td class="text-end fw-semibold @(p.NetPay < 0 ? "text-danger" : "")">@p.NetPay.ToString("N2")</td>
+                            <td class="small">
+                                @if (p.AlreadyGenerated)
+                                {
+                                    <span class="text-warning-emphasis"><i class="fa-solid fa-circle-check me-1"></i>Already generated</span>
+                                }
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer d-flex justify-content-between align-items-center">
+            <span class="text-muted small">Payslips are created as pending — approving the run approves them all.</span>
+            <form asp-controller="PayRuns" asp-action="Confirm" method="post" class="m-0">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="month" value="@Model.Month" />
+                <input type="hidden" name="year" value="@Model.Year" />
+                <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+                <input type="hidden" name="includeOvertimeInNetPay" value="@Model.IncludeOvertimeInNetPay.ToString().ToLowerInvariant()" />
+                <input type="hidden" name="payImmediately" value="@Model.PayImmediately.ToString().ToLowerInvariant()" />
+                <input type="hidden" name="paymentAccountId" value="@Model.PaymentAccountId" />
+                <button type="submit" class="btn btn-success" disabled="@(eligible.Count == 0)">
+                    <i class="fa-solid fa-play me-1"></i> Create Pay Run (@eligible.Count)
+                </button>
+            </form>
+        </div>
+    </div>
+}
+else if (Model.HasPreview)
+{
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-body text-center py-5">
+            <i class="fa-solid fa-user-slash fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No active employees match that filter.</p>
+        </div>
+    </div>
+}

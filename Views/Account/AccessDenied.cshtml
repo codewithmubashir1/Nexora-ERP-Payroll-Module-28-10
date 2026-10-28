@@ -1,0 +1,13 @@
+@{
+    ViewData["Title"] = "Access Denied";
+    Layout = "_LoginLayout";
+}
+
+<div class="d-flex align-items-center justify-content-center min-vh-100 text-center text-white">
+    <div class="animate__animated animate__fadeIn">
+        <i class="fa-solid fa-ban fa-4x mb-3"></i>
+        <h2>Access Denied</h2>
+        <p class="mb-4">You don't have permission to view this page.</p>
+        <a asp-controller="Dashboard" asp-action="Index" class="btn btn-light">Back to Dashboard</a>
+    </div>
+</div>

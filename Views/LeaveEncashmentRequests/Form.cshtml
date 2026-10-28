@@ -1,0 +1,116 @@
+@model ERP.Identity.Models.ViewModels.Payroll.LeaveEncashmentRequestFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Encashment Request" : "New Leave Encashment Request";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <form asp-controller="LeaveEncashmentRequests" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Encashment Details
+                        @if (isEdit)
+                        {
+                            <span class="badge bg-primary ms-2">@Model.RequestNumber</span>
+                        }
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    @if (Model.LeaveTypes.Count == 0)
+                    {
+                        <div class="alert alert-warning">
+                            No leave type is marked as encashable. Turn on <strong>Encashable</strong> for at
+                            least one leave type under Payroll Settings &rarr; Leaves Setup first.
+                        </div>
+                    }
+
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label asp-for="EmployeeId" class="form-label"></label>
+                            <select asp-for="EmployeeId" id="employeeSelect" class="form-select select2" data-placeholder="Select employee">
+                                <option></option>
+                                @foreach (var e in Model.Employees)
+                                {
+                                    <option value="@e.Id" data-basic="@e.BasicSalary.ToString("0.00")" selected="@(e.Id == Model.EmployeeId)">@e.Name (@e.EmployeeCode)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-5">
+                            <label asp-for="LeaveTypeId" class="form-label"></label>
+                            <select asp-for="LeaveTypeId" class="form-select select2" data-placeholder="Select leave type">
+                                <option></option>
+                                @foreach (var t in Model.LeaveTypes)
+                                {
+                                    <option value="@t.Id" selected="@(t.Id == Model.LeaveTypeId)">@t.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="LeaveTypeId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="DaysToEncash" class="form-label"></label>
+                            <input asp-for="DaysToEncash" id="days" type="number" min="1" max="365" class="form-control" />
+                            <span asp-validation-for="DaysToEncash" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Per Day Rate</label>
+                            <input id="dayRate" class="form-control" readonly disabled value="—" />
+                            <div class="form-text">basic &divide; 30</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Encashment Amount</label>
+                            <input id="amount" class="form-control fw-semibold" readonly disabled value="—" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Reason" class="form-label"></label>
+                            <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="LeaveEncashmentRequests" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary" disabled="@(Model.LeaveTypes.Count == 0)">
+                        <i class="fa-solid fa-paper-plane me-1"></i> @(isEdit ? "Update Request" : "Submit Request")
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function recalc() {
+            const sel = document.getElementById('employeeSelect');
+            const opt = sel.options[sel.selectedIndex];
+            const basic = opt ? parseFloat(opt.getAttribute('data-basic')) : NaN;
+            const days = parseInt(document.getElementById('days').value, 10) || 0;
+
+            const fmt = v => v.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+            if (isNaN(basic) || basic <= 0) {
+                document.getElementById('dayRate').value = '—';
+                document.getElementById('amount').value = '—';
+                return;
+            }
+
+            const rate = basic / 30;
+            document.getElementById('dayRate').value = fmt(rate);
+            document.getElementById('amount').value = fmt(rate * days);
+        }
+
+        jQuery('#employeeSelect').on('change', recalc);
+        document.getElementById('days').addEventListener('input', recalc);
+        recalc();
+    </script>
+}

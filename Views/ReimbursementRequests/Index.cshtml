@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Reimbursement Requests";
+
+    var page = new ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+    {
+        Controller = "ReimbursementRequests",
+        Title = "Reimbursement Requests",
+        NewButtonText = "New Request",
+        CategoryLabel = "Expense Type",
+        DetailLabel = "Expense Date",
+        ShowAmount = true,
+        CanApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove,
+        HelpText = "Expense types and their limits are configured under Payroll Settings, Reimbursement Setup."
+    };
+}
+
+<partial name="_RequestList" model="page" />
+
+@section Scripts {
+    <partial name="_RequestListScripts" model="page" />
+}

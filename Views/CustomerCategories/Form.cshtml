@@ -1,0 +1,47 @@
+@model ERP.Identity.Models.ViewModels.Sales.CustomerCategoryViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Customer Category" : "New Customer Category";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <form asp-controller="CustomerCategories" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Category Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Code" class="form-label"></label>
+                            <input asp-for="Code" class="form-control" />
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="3"></textarea>
+                        </div>
+                        <div class="col-12">
+                            <div class="form-check form-switch">
+                                <input asp-for="IsActive" class="form-check-input" role="switch" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="CustomerCategories" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update" : "Create")</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

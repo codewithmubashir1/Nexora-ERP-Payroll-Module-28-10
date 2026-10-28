@@ -1,0 +1,98 @@
+@model ERP.Identity.Models.ViewModels.CompanySettingsViewModel
+@{
+    ViewData["Title"] = "Company Settings";
+}
+
+<form asp-controller="Company" asp-action="Index" method="post" enctype="multipart/form-data" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-body">
+                    <partial name="_AvatarUpload" model="@Model.ExistingLogoPath" view-data='@(new ViewDataDictionary(ViewData) { { "InputName", "Logo" }, { "Label", "Company Logo" } })' />
+                    <div class="form-text text-center">Appears on every printed document's letterhead.</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Company Information</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="CompanyName" class="form-label"></label>
+                            <input asp-for="CompanyName" class="form-control" />
+                            <span asp-validation-for="CompanyName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control phone-input" />
+                        </div>
+                        <div class="col-md-8">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="NTNNumber" class="form-label"></label>
+                            <input asp-for="NTNNumber" class="form-control" id="ntnInput" placeholder="0000000-0" maxlength="9" />
+                            <span asp-validation-for="NTNNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SalesTaxRegistrationNumber" class="form-label"></label>
+                            <input asp-for="SalesTaxRegistrationNumber" class="form-control" id="strnInput" placeholder="00-00-0000-000-00" maxlength="19" />
+                            <span asp-validation-for="SalesTaxRegistrationNumber" class="text-danger small"></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Bank Details</h3></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="BankName" class="form-label"></label>
+                            <input asp-for="BankName" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BankAccountTitle" class="form-label"></label>
+                            <input asp-for="BankAccountTitle" class="form-control" />
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BankAccountNumber" class="form-label"></label>
+                            <input asp-for="BankAccountNumber" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Save Settings</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // Format-as-you-type: NTN 0000000-0
+        document.getElementById('ntnInput').addEventListener('input', function () {
+            let digits = this.value.replace(/\D/g, '').slice(0, 8);
+            this.value = digits.length > 7 ? digits.slice(0, 7) + '-' + digits.slice(7) : digits;
+        });
+
+        // Format-as-you-type: STRN 00-00-0000-000-00
+        document.getElementById('strnInput').addEventListener('input', function () {
+            let d = this.value.replace(/\D/g, '').slice(0, 13);
+            let parts = [d.slice(0, 2), d.slice(2, 4), d.slice(4, 8), d.slice(8, 11), d.slice(11, 13)];
+            this.value = parts.filter(p => p.length > 0).join('-');
+        });
+    </script>
+}

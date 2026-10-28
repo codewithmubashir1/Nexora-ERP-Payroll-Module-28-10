@@ -1,0 +1,54 @@
+@model List<ERP.Identity.Models.ViewModels.Payroll.DepartmentNodeViewModel>
+@{
+    ViewData["Title"] = "Department Hierarchy";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Department Hierarchy</h3>
+        <div class="d-flex gap-2">
+            <a asp-controller="Departments" asp-action="Index" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-list me-1"></i> List View
+            </a>
+            <a asp-controller="Departments" asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-plus me-1"></i> New Department
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Count == 0)
+        {
+            <p class="text-muted mb-0">No departments have been created yet.</p>
+        }
+        else
+        {
+            <ul class="dept-tree dept-tree-root">
+                @foreach (var node in Model)
+                {
+                    <partial name="_DepartmentNode" model="node" />
+                }
+            </ul>
+        }
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .dept-tree { list-style: none; margin: 0; padding-left: 0; }
+        .dept-tree-root > .dept-node { margin-bottom: .5rem; }
+        .dept-tree .dept-tree { padding-left: 1.75rem; position: relative; margin-top: .5rem; }
+        .dept-tree .dept-tree::before {
+            content: ""; position: absolute; left: .6rem; top: 0; bottom: .9rem;
+            border-left: 2px solid var(--bs-border-color);
+        }
+        .dept-node { position: relative; }
+        .dept-tree .dept-tree > .dept-node::before {
+            content: ""; position: absolute; left: -1.15rem; top: 1.25rem;
+            width: 1.05rem; border-top: 2px solid var(--bs-border-color);
+        }
+        .dept-card {
+            border: 1px solid var(--bs-border-color); border-radius: .5rem;
+            padding: .6rem .85rem; margin-bottom: .5rem; background: var(--bs-body-bg);
+        }
+    </style>
+}

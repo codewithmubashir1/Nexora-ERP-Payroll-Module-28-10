@@ -1,0 +1,89 @@
+@model ERP.Identity.Models.ViewModels.Accounts.AccountFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Account" : "New Account";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <form asp-controller="ChartOfAccounts" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <input type="hidden" asp-for="IsSystemAccount" />
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Account Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    @if (Model.IsSystemAccount)
+                    {
+                        <div class="alert alert-info small"><i class="fa-solid fa-circle-info me-1"></i> This is a system account used by automated postings (invoices, payments, etc). Its code and type are locked to protect those postings, but name/description/balance remain editable.</div>
+                    }
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="AccountCode" class="form-label"></label>
+                            <input asp-for="AccountCode" class="form-control" readonly="@Model.IsSystemAccount" />
+                            <span asp-validation-for="AccountCode" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-8">
+                            <label asp-for="AccountName" class="form-label"></label>
+                            <input asp-for="AccountName" class="form-control" />
+                            <span asp-validation-for="AccountName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="AccountType" class="form-label"></label>
+                            @if (Model.IsSystemAccount)
+                            {
+                                <select class="form-select select2" disabled>
+                                    @foreach (var type in Enum.GetValues<ERP.Identity.Models.Accounts.AccountType>())
+                                    {
+                                        <option selected="@(type == Model.AccountType)">@type</option>
+                                    }
+                                </select>
+                                <input type="hidden" asp-for="AccountType" />
+                            }
+                            else
+                            {
+                                <select asp-for="AccountType" class="form-select select2">
+                                    @foreach (var type in Enum.GetValues<ERP.Identity.Models.Accounts.AccountType>())
+                                    {
+                                        <option value="@((int)type)" selected="@(type == Model.AccountType)">@type</option>
+                                    }
+                                </select>
+                            }
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="ParentAccountId" class="form-label"></label>
+                            <select asp-for="ParentAccountId" class="form-select select2" data-placeholder="None (top-level account)">
+                                <option></option>
+                                @foreach (var a in Model.ParentAccounts)
+                                {
+                                    <option value="@a.Id">@a.AccountCode — @a.AccountName</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="OpeningBalance" class="form-label"></label>
+                            <input asp-for="OpeningBalance" type="number" step="0.01" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-check form-switch mt-4">
+                                <input asp-for="IsActive" class="form-check-input" role="switch" />
+                                <label asp-for="IsActive" class="form-check-label">Active</label>
+                            </div>
+                        </div>
+                        <div class="col-12">
+                            <label asp-for="Description" class="form-label"></label>
+                            <textarea asp-for="Description" class="form-control" rows="2"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="ChartOfAccounts" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update" : "Create")</button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts { <partial name="_ValidationScriptsPartial" /> }

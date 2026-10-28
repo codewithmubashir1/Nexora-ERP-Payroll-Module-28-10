@@ -1,0 +1,988 @@
+/* ============================================================
+    ERP System — Atelier Operations Theme
+    Palette: warm paper, deep ink, jade actions, coral signals
+   ============================================================ */
+
+:root {
+    /* ---- Brand palette ---- */
+    --bs-primary: #0f766e;
+    --bs-primary-rgb: 15, 118, 110;
+    --bs-secondary: #667085;
+    --bs-secondary-rgb: 102, 112, 133;
+    --bs-success: #18866b;
+    --bs-success-rgb: 24, 134, 107;
+    --bs-info: #367c94;
+    --bs-info-rgb: 54, 124, 148;
+    --bs-warning: #c47b36;
+    --bs-warning-rgb: 196, 123, 54;
+    --bs-danger: #c85b52;
+    --bs-danger-rgb: 200, 91, 82;
+    --bs-light: #f7f4ee;
+    --bs-light-rgb: 247, 244, 238;
+    --bs-dark: #16252b;
+    --bs-dark-rgb: 22, 37, 43;
+
+    --bs-body-bg: #f5f3ee;
+    --bs-body-color: #25343a;
+    --bs-border-color: #dddcd5;
+    --bs-link-color: #0f766e;
+    --bs-link-hover-color: #0a5c56;
+
+    --bs-body-font-family: "Manrope", "Segoe UI", system-ui, -apple-system, sans-serif;
+
+    /* ---- App accents ---- */
+    --erp-accent: #e0785f;
+    --erp-sidebar-bg: #16252b;
+    --erp-sidebar-bg-hover: #213840;
+    --erp-radius: .8rem;
+    --erp-radius-sm: .55rem;
+    --erp-border: 1px solid var(--bs-border-color);
+}
+
+html,
+body {
+    font-family: var(--bs-body-font-family);
+    background-color: var(--bs-body-bg);
+    background-image: radial-gradient(rgba(22, 37, 43, .045) 1px, transparent 1px);
+    background-size: 18px 18px;
+    color: var(--bs-body-color);
+    overflow-x: hidden;
+    max-width: 100vw;
+}
+
+/* ============================================================
+   Prevent the whole page from scrolling horizontally — wide
+   DataTables/toolbars scroll within their own container instead.
+   ============================================================ */
+.app-content,
+.app-content-header,
+.card-body {
+    max-width: 100%;
+}
+
+.table-responsive,
+.card-body {
+    overflow-x: auto;
+}
+
+.dataTables_wrapper {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+h1,
+h2,
+h3,
+h4,
+h5,
+h6,
+.card-title,
+.brand-text {
+    font-weight: 700;
+    letter-spacing: 0;
+}
+
+h1, h2 {
+    font-family: "DM Serif Display", Georgia, serif;
+    font-weight: 400;
+}
+
+/* ============================================================
+   Kill default Bootstrap / AdminLTE box-shadows everywhere,
+   replace depth with quiet 1px borders instead.
+   ============================================================ */
+*,
+*::before,
+*::after {
+    box-shadow: none !important;
+}
+
+.shadow,
+.shadow-sm,
+.shadow-lg,
+.elevation-1,
+.elevation-2,
+.elevation-3,
+.elevation-4 {
+    box-shadow: none !important;
+}
+
+.card,
+.app-header,
+.app-sidebar,
+.dropdown-menu,
+.modal-content,
+.small-box,
+.info-box,
+.btn,
+.form-control,
+.form-select,
+.select2-container--bootstrap-5 .select2-selection,
+.swal2-popup {
+    box-shadow: none !important;
+}
+
+/* re-introduce depth with restrained borders instead of shadows */
+.card {
+    border: var(--erp-border);
+}
+
+.app-header {
+    border-bottom: var(--erp-border);
+}
+
+.dropdown-menu {
+    border: var(--erp-border);
+}
+
+.modal-content {
+    border: var(--erp-border);
+}
+
+/* ============================================================
+   Cards
+   ============================================================ */
+.card {
+    border-radius: var(--erp-radius);
+    background-color: rgba(255, 255, 255, .82);
+    border-color: rgba(22, 37, 43, .1);
+}
+
+.card-header {
+    background-color: transparent;
+    border-bottom: var(--erp-border);
+    border-top-left-radius: var(--erp-radius);
+    border-top-right-radius: var(--erp-radius);
+    padding: 1rem 1.25rem;
+}
+
+.card-header .card-title {
+    font-size: 1.02rem;
+    font-weight: 700;
+    color: var(--bs-dark);
+}
+
+.card-body {
+    padding: 1.25rem;
+}
+
+.card-footer {
+    background-color: #f9fafb;
+    border-top: var(--erp-border);
+    border-bottom-left-radius: var(--erp-radius);
+    border-bottom-right-radius: var(--erp-radius);
+}
+
+.card-outline.card-primary {
+    border-top: 3px solid var(--bs-primary);
+}
+
+/* ============================================================
+   Buttons — Bootstrap 5.3 bakes hex colors into local custom
+   properties per component, so root-variable overrides alone
+   don't retheme buttons. Override the local props explicitly.
+   ============================================================ */
+.btn {
+    border-radius: var(--erp-radius-sm);
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding-block: .5rem;
+    transition: background-color .2s ease, border-color .2s ease, transform .15s ease, color .2s ease;
+}
+
+.btn:active {
+    transform: translateY(1px);
+}
+
+.btn-primary {
+    --bs-btn-color: #fff;
+    --bs-btn-bg: #0f766e;
+    --bs-btn-border-color: #0f766e;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #0a5c56;
+    --bs-btn-hover-border-color: #0a5c56;
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: #074b47;
+    --bs-btn-active-border-color: #074b47;
+    --bs-btn-disabled-bg: #0f766e;
+    --bs-btn-disabled-border-color: #0f766e;
+    --bs-btn-focus-shadow-rgb: 15, 118, 110;
+}
+
+.btn-outline-primary {
+    --bs-btn-color: #2563eb;
+    --bs-btn-border-color: #2563eb;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #2563eb;
+    --bs-btn-hover-border-color: #2563eb;
+    --bs-btn-active-bg: #1d4ed8;
+    --bs-btn-active-border-color: #1d4ed8;
+}
+
+.btn-secondary {
+    --bs-btn-bg: #6b7280;
+    --bs-btn-border-color: #6b7280;
+    --bs-btn-hover-bg: #4b5563;
+    --bs-btn-hover-border-color: #454e5c;
+    --bs-btn-active-bg: #454e5c;
+    --bs-btn-active-border-color: #374151;
+}
+
+.btn-outline-secondary {
+    --bs-btn-color: #4b5563;
+    --bs-btn-border-color: #cbd2db;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: #6b7280;
+    --bs-btn-hover-border-color: #6b7280;
+}
+
+.btn-success {
+    --bs-btn-bg: #16a34a;
+    --bs-btn-border-color: #16a34a;
+    --bs-btn-hover-bg: #15803d;
+    --bs-btn-hover-border-color: #14783a;
+    --bs-btn-active-bg: #14783a;
+    --bs-btn-active-border-color: #166534;
+}
+
+.btn-outline-success {
+    --bs-btn-color: #16a34a;
+    --bs-btn-border-color: #16a34a;
+    --bs-btn-hover-bg: #16a34a;
+    --bs-btn-hover-border-color: #16a34a;
+}
+
+.btn-danger {
+    --bs-btn-bg: #ef4444;
+    --bs-btn-border-color: #ef4444;
+    --bs-btn-hover-bg: #dc2626;
+    --bs-btn-hover-border-color: #d32323;
+    --bs-btn-active-bg: #d32323;
+    --bs-btn-active-border-color: #b91c1c;
+}
+
+.btn-outline-danger {
+    --bs-btn-color: #ef4444;
+    --bs-btn-border-color: #ef4444;
+    --bs-btn-hover-bg: #ef4444;
+    --bs-btn-hover-border-color: #ef4444;
+}
+
+.btn-warning {
+    --bs-btn-bg: #f59e0b;
+    --bs-btn-border-color: #f59e0b;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-bg: #d97706;
+    --bs-btn-hover-border-color: #cc7005;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+}
+
+.btn-outline-warning {
+    --bs-btn-color: #b45309;
+    --bs-btn-border-color: #f59e0b;
+    --bs-btn-hover-bg: #f59e0b;
+    --bs-btn-hover-border-color: #f59e0b;
+    --bs-btn-hover-color: #fff;
+}
+
+.btn-info {
+    --bs-btn-bg: #0ea5e9;
+    --bs-btn-border-color: #0ea5e9;
+    --bs-btn-color: #fff;
+    --bs-btn-hover-bg: #0284c7;
+    --bs-btn-hover-border-color: #0279b8;
+    --bs-btn-hover-color: #fff;
+    --bs-btn-active-color: #fff;
+}
+
+.btn-light {
+    --bs-btn-bg: #fff;
+    --bs-btn-border-color: var(--bs-border-color);
+    --bs-btn-color: var(--bs-dark);
+    --bs-btn-hover-bg: #f3f4f6;
+    --bs-btn-hover-border-color: var(--bs-border-color);
+}
+
+/* ============================================================
+   Forms
+   ============================================================ */
+.form-control,
+.form-select {
+    border-radius: var(--erp-radius-sm);
+    border-color: var(--bs-border-color);
+    background-color: rgba(255, 255, 255, .7);
+    padding: .55rem .8rem;
+}
+
+.form-control:focus,
+.form-select:focus {
+    border-color: var(--bs-primary);
+    background-color: #fff;
+    outline: 3px solid rgba(15, 118, 110, .14);
+    outline-offset: 0;
+}
+
+.form-label {
+    font-weight: 600;
+    font-size: .85rem;
+    color: #4b5563;
+    margin-bottom: .4rem;
+}
+
+.form-check-input:checked {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.form-switch .form-check-input:checked {
+    background-color: var(--erp-accent);
+    border-color: var(--erp-accent);
+}
+
+.input-group-text {
+    background-color: #eeece5;
+    border-color: var(--bs-border-color);
+    color: #6d7686;
+}
+
+/* ============================================================
+   Tables
+   ============================================================ */
+.table {
+    --bs-table-border-color: var(--bs-border-color);
+}
+
+.table thead th {
+    text-transform: uppercase;
+    font-size: .72rem;
+    letter-spacing: .05em;
+    color: #6d7686;
+    background-color: #eeece5;
+    border-bottom: 2px solid var(--bs-border-color);
+    font-weight: 700;
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>* {
+    background-color: rgba(238, 236, 229, .42);
+}
+
+.table-hover>tbody>tr:hover>* {
+    background-color: rgba(15, 118, 110, .07);
+}
+
+/* ============================================================
+   Badges & pills
+   ============================================================ */
+.badge {
+    border-radius: 50px;
+    font-weight: 600;
+    letter-spacing: .01em;
+    padding: .42em .75em;
+}
+
+/* ============================================================
+   Dropdowns
+   ============================================================ */
+.dropdown-menu {
+    border-radius: var(--erp-radius);
+    padding: .5rem;
+}
+
+.dropdown-item {
+    border-radius: var(--erp-radius-sm);
+    padding: .5rem .75rem;
+    font-weight: 500;
+}
+
+.dropdown-item:hover,
+.dropdown-item:focus {
+    background-color: rgba(15, 118, 110, .08);
+    color: var(--bs-dark);
+}
+
+.dropdown-item.active,
+.dropdown-item:active {
+    background-color: rgba(var(--bs-primary-rgb), .1);
+    color: var(--bs-primary);
+}
+
+/* ============================================================
+   AdminLTE app shell — navbar / sidebar / footer
+   ============================================================ */
+.app-header {
+    background-color: rgba(255, 255, 255, .84) !important;
+    backdrop-filter: blur(14px);
+    border-bottom-color: rgba(22, 37, 43, .1);
+}
+
+.app-header .nav-link {
+    color: #4b5563;
+}
+
+.app-header .nav-link:hover {
+    color: var(--bs-primary);
+}
+
+.app-header .nav-link {
+    transition: color .2s ease, transform .2s ease;
+}
+
+.app-header .nav-link:hover {
+    transform: translateY(-1px);
+}
+
+.app-sidebar {
+    background-color: var(--erp-sidebar-bg) !important;
+    border-right: 1px solid rgba(255, 255, 255, .06);
+}
+
+.app-sidebar .sidebar-brand {
+    border-bottom: 1px solid rgba(255, 255, 255, .08);
+}
+
+.app-sidebar .brand-link {
+    display: flex;
+    align-items: center;
+    min-height: 4.4rem;
+}
+
+.app-sidebar .brand-text {
+    color: #f5f3ee;
+    font-size: 1.05rem;
+    letter-spacing: .02em;
+}
+
+.app-sidebar .brand-image {
+    color: var(--erp-accent) !important;
+}
+
+.app-sidebar .nav-sidebar>.nav-item>.nav-link,
+.app-sidebar .nav-link {
+    color: #c3c9d6;
+    border-radius: var(--erp-radius-sm);
+    margin: .12rem .6rem;
+    padding: .55rem .8rem;
+    transition: background-color .15s ease, color .15s ease;
+}
+
+.app-sidebar .nav-link:hover {
+    background-color: var(--erp-sidebar-bg-hover);
+    color: #fff;
+}
+
+.app-sidebar .nav-link.active {
+    background-color: var(--bs-primary);
+    color: #fff;
+    box-shadow: inset 3px 0 0 var(--erp-accent) !important;
+}
+
+.app-sidebar .nav-icon {
+    color: #8b93a7;
+    margin-right: .6rem;
+}
+
+.app-sidebar .nav-link:hover .nav-icon,
+.app-sidebar .nav-link.active .nav-icon {
+    color: #fff;
+}
+
+.app-sidebar .nav-header {
+    color: #6b7385;
+    font-size: .68rem;
+    letter-spacing: .08em;
+    font-weight: 700;
+    padding: 1rem 1.1rem .35rem;
+}
+
+.app-footer {
+    background-color: rgba(255, 255, 255, .35);
+    border-top: var(--erp-border);
+}
+
+.app-content-header {
+    padding: 1.6rem 0 .9rem;
+}
+
+.app-content-header h3 {
+    color: var(--bs-dark);
+    font-size: 1.55rem;
+}
+
+.app-content-header .text-muted {
+    color: #7b837f !important;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    font-size: .7rem !important;
+    font-weight: 700;
+}
+
+/* ============================================================
+   Small boxes / info boxes (dashboard)
+   ============================================================ */
+.small-box {
+    border-radius: var(--erp-radius);
+    overflow: hidden;
+    border: var(--erp-border);
+    border-color: transparent;
+    min-height: 142px;
+    transition: transform .22s ease, filter .22s ease;
+}
+
+.small-box:hover {
+    transform: translateY(-4px);
+    filter: saturate(1.08);
+}
+
+.small-box .icon {
+    opacity: .18;
+}
+
+.small-box .small-box-footer {
+    background: rgba(0, 0, 0, .08);
+    color: rgba(255, 255, 255, .9) !important;
+}
+
+.small-box .inner h3 {
+    font-weight: 800;
+    letter-spacing: -.04em;
+}
+
+.bg-primary { background-color: #0f766e !important; }
+.bg-success { background-color: #18866b !important; }
+.bg-info { background-color: #367c94 !important; }
+.bg-warning { background-color: #c47b36 !important; }
+.bg-danger { background-color: #c85b52 !important; }
+.bg-secondary { background-color: #667085 !important; }
+
+/* ============================================================
+   Login page — restyled to match the elegant palette
+   ============================================================ */
+.login-page-body {
+    margin: 0;
+    background: #16252b;
+}
+
+.login-page {
+    min-height: 100vh;
+    padding: 2rem;
+    display: grid;
+    place-items: center;
+    background-color: #16252b;
+    background-image: linear-gradient(130deg, rgba(224, 120, 95, .16), transparent 32%), radial-gradient(circle at 80% 20%, rgba(15, 118, 110, .38), transparent 30%), linear-gradient(rgba(255, 255, 255, .025) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .025) 1px, transparent 1px);
+    background-size: auto, auto, 34px 34px, 34px 34px;
+}
+
+.login-stage {
+    display: grid;
+    grid-template-columns: minmax(300px, .9fr) minmax(360px, 1.1fr);
+    width: min(960px, 100%);
+    min-height: 560px;
+    overflow: hidden;
+    border-radius: 1.2rem;
+    background: #f5f3ee;
+    box-shadow: 0 24px 70px rgba(0, 0, 0, .25) !important;
+}
+
+.login-intro {
+    padding: 3.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #f5f3ee;
+    background: linear-gradient(155deg, #203940, #16252b 72%);
+    position: relative;
+    overflow: hidden;
+}
+
+.login-intro::after {
+    content: "";
+    width: 240px;
+    height: 240px;
+    border: 1px solid rgba(224, 120, 95, .5);
+    border-radius: 50%;
+    position: absolute;
+    right: -90px;
+    bottom: -70px;
+}
+
+.login-mark {
+    color: var(--erp-accent);
+    font-size: 1.4rem;
+}
+
+.eyebrow {
+    font-size: .67rem;
+    letter-spacing: .16em;
+    font-weight: 800;
+    margin: 0 0 1rem;
+}
+
+.login-intro h1 {
+    font-size: clamp(2.8rem, 5vw, 4.6rem);
+    line-height: .98;
+    color: #f5f3ee;
+    margin: 0;
+    position: relative;
+    z-index: 1;
+}
+
+.login-intro h1 em {
+    color: #e0785f;
+    font-style: normal;
+}
+
+.intro-copy {
+    max-width: 310px;
+    color: rgba(245, 243, 238, .68);
+    line-height: 1.8;
+    margin: 1.8rem 0 0;
+}
+
+.intro-foot, .login-legal {
+    color: rgba(245, 243, 238, .55);
+    font-size: .7rem;
+    letter-spacing: .05em;
+}
+
+.status-dot {
+    width: 7px;
+    height: 7px;
+    display: inline-block;
+    border-radius: 50%;
+    background: #63c3a4;
+    margin-right: .45rem;
+}
+
+.intro-divider {
+    display: inline-block;
+    height: 12px;
+    border-left: 1px solid rgba(245, 243, 238, .25);
+    margin: 0 .65rem;
+    vertical-align: middle;
+}
+
+.login-panel {
+    padding: 4rem 4.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.login-panel-heading h2 {
+    font-size: 2rem;
+    color: var(--bs-dark);
+    margin: 0 0 .6rem;
+}
+
+.login-panel-heading > p:last-child {
+    color: #77817e;
+    margin-bottom: 2rem;
+}
+
+.login-panel .card-body {
+    padding: 0;
+}
+
+.login-submit {
+    min-width: 118px;
+    padding-inline: 1.2rem !important;
+}
+
+.login-legal {
+    position: absolute;
+    bottom: 1.1rem;
+    margin: 0;
+}
+
+.login-legal span {
+    color: var(--erp-accent);
+    padding: 0 .35rem;
+}
+
+@media (max-width: 720px) {
+    .login-page {
+        padding: 1rem;
+        display: block;
+    }
+
+    .login-stage {
+        display: block;
+        min-height: 0;
+        margin: 1rem auto 3rem;
+    }
+
+    .login-intro {
+        min-height: 320px;
+        padding: 2rem;
+    }
+
+    .login-intro h1 {
+        font-size: 3.15rem;
+    }
+
+    .intro-copy {
+        margin-top: 1rem;
+        line-height: 1.55;
+    }
+
+    .login-panel {
+        padding: 2.2rem 1.7rem 2.5rem;
+    }
+
+    .login-panel-heading h2 {
+        font-size: 1.7rem;
+    }
+
+    .login-legal {
+        position: static;
+        display: block;
+        text-align: center;
+    }
+}
+
+/* ============================================================
+   Animated hoverable navbar dropdowns
+   ============================================================ */
+.hoverable-dropdown {
+    position: relative;
+}
+
+.hoverable-dropdown .animated-dropdown {
+    display: block;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: opacity .25s ease, transform .25s ease, visibility .25s;
+    pointer-events: none;
+}
+
+.hoverable-dropdown:hover .animated-dropdown,
+.hoverable-dropdown .animated-dropdown.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+    pointer-events: auto;
+}
+
+.quick-link {
+    color: #4b5563;
+    padding: .6rem 0;
+    border-radius: var(--erp-radius-sm);
+    transition: background-color .15s ease, transform .15s ease, color .15s ease;
+}
+
+.quick-link:hover {
+    background-color: rgba(var(--bs-primary-rgb), .08);
+    transform: translateY(-2px);
+    color: var(--bs-primary);
+}
+
+/* ============================================================
+   Avatar upload with live preview
+   ============================================================ */
+.avatar-preview-wrapper {
+    position: relative;
+    width: 130px;
+    height: 130px;
+}
+
+.avatar-preview {
+    width: 130px;
+    height: 130px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 3px solid #fff;
+    outline: 2px solid var(--bs-border-color);
+}
+
+.avatar-edit-btn {
+    position: absolute;
+    bottom: 4px;
+    right: 4px;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--erp-accent);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: transform .15s ease, background-color .15s ease;
+}
+
+.avatar-edit-btn:hover {
+    transform: scale(1.08);
+    background: #dc6a0f;
+}
+
+.table-avatar {
+    width: 32px;
+    height: 32px;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 1px solid var(--bs-border-color);
+}
+
+/* ============================================================
+   Select2 / Flatpickr — align with the elegant form styling
+   ============================================================ */
+.select2-container--bootstrap-5 .select2-selection {
+    min-height: calc(1.5em + 1.1rem + 2px);
+    border-color: var(--bs-border-color);
+    border-radius: var(--erp-radius-sm);
+}
+
+.select2-container--bootstrap-5.select2-container--focus .select2-selection,
+.select2-container--bootstrap-5.select2-container--open .select2-selection {
+    border-color: var(--bs-primary);
+}
+
+.select2-container--bootstrap-5 .select2-results__option--highlighted {
+    background-color: var(--bs-primary) !important;
+}
+
+.flatpickr-input {
+    background-color: #fff !important;
+}
+
+.flatpickr-day.selected,
+.flatpickr-day.selected:hover {
+    background: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+.flatpickr-day.today {
+    border-color: var(--erp-accent);
+}
+
+/* ============================================================
+   DataTables — quieter chrome to match the rest of the app
+   ============================================================ */
+.dataTables_wrapper .dataTables_filter input,
+.dataTables_wrapper .dataTables_length select {
+    border-radius: var(--erp-radius-sm);
+    border: 1px solid var(--bs-border-color);
+    padding: .35rem .6rem;
+}
+
+table.dataTable>thead>tr>th {
+    border-bottom: 2px solid var(--bs-border-color) !important;
+}
+
+.dataTables_wrapper .dataTables_paginate .page-link {
+    border-radius: var(--erp-radius-sm) !important;
+    margin: 0 2px;
+    border-color: var(--bs-border-color);
+    color: #4b5563;
+}
+
+.dataTables_wrapper .dataTables_paginate .page-item.active .page-link {
+    background-color: var(--bs-primary);
+    border-color: var(--bs-primary);
+}
+
+/* ============================================================
+   SweetAlert2 — flatten and align with the palette
+   ============================================================ */
+.swal2-popup {
+    border-radius: var(--erp-radius) !important;
+    font-family: var(--bs-body-font-family);
+}
+
+.swal2-styled.swal2-confirm {
+    border-radius: var(--erp-radius-sm) !important;
+}
+
+/* ============================================================
+   Notyf — restyle toasts to match the palette (flat, no glow)
+   ============================================================ */
+.notyf__toast {
+    border-radius: var(--erp-radius) !important;
+    box-shadow: 0 0 0 1px rgba(0, 0, 0, .06) !important;
+}
+
+.notyf__toast--success {
+    background: #16a34a !important;
+}
+
+.notyf__toast--error {
+    background: #ef4444 !important;
+}
+
+/* ============================================================
+   DataTables Buttons toolbar
+   ============================================================ */
+.dt-buttons {
+    display: flex;
+    gap: .35rem;
+    flex-wrap: wrap;
+}
+
+.dt-buttons .btn {
+    padding: .4rem .75rem;
+    display: inline-flex;
+    align-items: center;
+    white-space: nowrap;
+}
+
+.dt-buttons .btn i {
+    font-size: .85rem;
+}
+
+.dataTables_wrapper .dataTables_filter input {
+    margin-left: .5rem;
+}
+
+/* ============================================================
+   Voucher status badges (approval workflow)
+   ============================================================ */
+.badge-status-pending {
+    background-color: #f59e0b;
+    color: #fff;
+}
+
+.badge-status-approved {
+    background-color: #16a34a;
+    color: #fff;
+}
+
+.badge-status-rejected {
+    background-color: #ef4444;
+    color: #fff;
+}
+
+/* ============================================================
+   Products page toolbar (filters + import/export/duplicate buttons)
+   ============================================================ */
+.products-toolbar {
+    flex-wrap: nowrap !important;
+    overflow-x: auto;
+    padding-bottom: 2px;
+    scrollbar-width: none;
+    /* Firefox */
+    -ms-overflow-style: none;
+    /* IE/Edge legacy */
+}
+
+.products-toolbar::-webkit-scrollbar {
+    display: none;
+    /* Chrome/Safari/Edge */
+}
+
+.products-toolbar>div {
+    flex-wrap: nowrap !important;
+    flex-shrink: 0;
+}
+
+.products-toolbar .form-select,
+.products-toolbar .select2-container {
+    min-width: 150px;
+}
+
+.btn-toggle-duplicates.active {
+    background-color: #f59e0b;
+    border-color: #f59e0b;
+    color: #fff;
+}

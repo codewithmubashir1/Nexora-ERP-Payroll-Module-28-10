@@ -1,0 +1,111 @@
+@{
+    ViewData["Title"] = "Sales";
+}
+
+<div class="row overview-kpi-grid">
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-primary animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="sd-customerCount">@ViewBag.CustomerCount</h3><p>Customers</p></div>
+            <div class="icon"><i class="fa-solid fa-users"></i></div>
+            <a asp-controller="Customers" asp-action="Index" class="small-box-footer">Manage <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-warning animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="sd-pendingApprovals">@ViewBag.PendingApprovals</h3><p>Pending Approvals</p></div>
+            <div class="icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <a asp-controller="SaleOrders" asp-action="Index" class="small-box-footer">Review <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-info animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="sd-saleOrderCount">@ViewBag.SaleOrderCount</h3><p>Sale Orders</p></div>
+            <div class="icon"><i class="fa-solid fa-file-lines"></i></div>
+            <a asp-controller="SaleOrders" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-success animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="sd-deliveryChallanCount">@ViewBag.DeliveryChallanCount</h3><p>Delivery Challans</p></div>
+            <div class="icon"><i class="fa-solid fa-truck"></i></div>
+            <a asp-controller="DeliveryChallans" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-secondary animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner"><h3 id="sd-invoiceCount">@ViewBag.InvoiceCount</h3><p>Invoices</p></div>
+            <div class="icon"><i class="fa-solid fa-file-invoice-dollar"></i></div>
+            <a asp-controller="SalesInvoices" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-danger animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner"><h3 id="sd-outstandingReceivable">@(((decimal)ViewBag.OutstandingReceivable).ToString("N0"))</h3><p>Outstanding Receivable</p></div>
+            <div class="icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <a asp-controller="SalesInvoices" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-bolt me-2"></i>Quick Actions</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <a asp-controller="SaleOrders" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-file-lines d-block mb-1 fa-lg"></i> New Sale Order
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="DeliveryChallans" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-truck d-block mb-1 fa-lg"></i> New Delivery Challan
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="SalesInvoices" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-file-invoice-dollar d-block mb-1 fa-lg"></i> New Invoice
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="CreditNotes" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-rotate-left d-block mb-1 fa-lg"></i> New Credit Note
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="SalesInvoicePayments" asp-action="Create" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-money-bill-wave d-block mb-1 fa-lg"></i> Record Payment
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="Customers" asp-action="Create" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-user-plus d-block mb-1 fa-lg"></i> New Customer
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="CustomerCategories" asp-action="Create" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-tags d-block mb-1 fa-lg"></i> New Category
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function refreshSalesDashboard() {
+            fetch('/Sales/GetSummary')
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    document.getElementById('sd-customerCount').textContent = data.customerCount;
+                    document.getElementById('sd-pendingApprovals').textContent = data.pendingApprovals;
+                    document.getElementById('sd-saleOrderCount').textContent = data.saleOrderCount;
+                    document.getElementById('sd-deliveryChallanCount').textContent = data.deliveryChallanCount;
+                    document.getElementById('sd-invoiceCount').textContent = data.invoiceCount;
+                    document.getElementById('sd-outstandingReceivable').textContent = Number(data.outstandingReceivable).toLocaleString('en-PK', { maximumFractionDigits: 0 });
+                })
+                .catch(() => { /* silent - keep last known values on transient failure */ });
+        }
+
+        setInterval(refreshSalesDashboard, 20000);
+    </script>
+}

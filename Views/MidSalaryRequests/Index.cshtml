@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Mid Salary Requests";
+
+    var page = new ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+    {
+        Controller = "MidSalaryRequests",
+        Title = "Mid Salary Requests",
+        NewButtonText = "New Request",
+        CategoryLabel = "Type",
+        DetailLabel = "Reason",
+        ShowAmount = true,
+        CanApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove,
+        HelpText = "A mid-month draw is treated as an advance against the same month's pay and is recovered in full on that month's payslip."
+    };
+}
+
+<partial name="_RequestList" model="page" />
+
+@section Scripts {
+    <partial name="_RequestListScripts" model="page" />
+}

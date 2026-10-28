@@ -1,0 +1,72 @@
+@model ERP.Identity.Models.Sales.CreditNote
+@using ERP.Identity.Models.Inventory
+@{
+    ViewData["Title"] = $"Credit Note {Model.CreditNoteNumber}";
+    var canApprove = (bool)(ViewBag.CanApprove ?? false);
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Credit Note @Model.CreditNoteNumber</h3>
+        <div class="d-flex gap-2">
+            <a asp-controller="CreditNotes" asp-action="Print" asp-route-id="@Model.Id" target="_blank" class="btn btn-sm btn-outline-dark"><i class="fa-solid fa-print me-1"></i> Print</a>
+            <a asp-controller="CreditNotes" asp-action="Index" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i> Back</a>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-3 align-items-center">
+            <div class="col-md-3"><small class="text-muted d-block">Date</small><strong>@Model.CreditNoteDate.ToString("dd MMM yyyy")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Customer</small><strong>@Model.Customer?.Name</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Reason</small><strong>@(Model.Reason ?? "—")</strong></div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Status</small>
+                @if (Model.Status == VoucherStatus.Pending) { <span class="badge badge-status-pending">Pending</span> }
+                else if (Model.Status == VoucherStatus.Approved) { <span class="badge badge-status-approved">Approved</span> }
+                else { <span class="badge badge-status-rejected">Rejected</span> }
+            </div>
+            <div class="col-md-3"><small class="text-muted d-block">Linked Invoice</small><strong>@(Model.SalesInvoice?.InvoiceNumber ?? "—")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Linked Challan</small><strong>@(Model.DeliveryChallan?.ChallanNo ?? "—")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Return Location</small><strong>@(Model.Location?.Name ?? "Not a physical return")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Total</small><strong>@Model.TotalAmount.ToString("N2")</strong></div>
+        </div>
+
+        <table class="table table-striped">
+            <thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Unit Price</th><th>Total</th><th>Remarks</th></tr></thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.Product?.Sku</td>
+                        <td>@item.Product?.Name</td>
+                        <td>@item.Quantity</td>
+                        <td>@item.UnitPrice.ToString("N2")</td>
+                        <td>@item.LineTotal.ToString("N2")</td>
+                        <td>@(item.Remarks ?? "—")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot><tr><th colspan="4" class="text-end">Total</th><th>@Model.TotalAmount.ToString("N2")</th><th></th></tr></tfoot>
+        </table>
+    </div>
+    @if (canApprove && Model.Status == VoucherStatus.Pending)
+    {
+        <div class="card-footer text-end">
+            <button type="button" id="rejectBtn" class="btn btn-outline-danger"><i class="fa-solid fa-xmark me-1"></i> Reject</button>
+            <button type="button" id="approveBtn" class="btn btn-success"><i class="fa-solid fa-check me-1"></i> Approve</button>
+        </div>
+    }
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        document.getElementById('approveBtn')?.addEventListener('click', function () {
+            approveVoucher('@Url.Action("Approve", "CreditNotes")', @Model.Id, token, function () { location.reload(); });
+        });
+        document.getElementById('rejectBtn')?.addEventListener('click', function () {
+            rejectVoucher('@Url.Action("Reject", "CreditNotes")', @Model.Id, token, function () { location.reload(); });
+        });
+    </script>
+}

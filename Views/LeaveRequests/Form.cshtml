@@ -1,0 +1,97 @@
+@model ERP.Identity.Models.ViewModels.Payroll.LeaveRequestFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Leave Request" : "New Leave Request";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <form asp-controller="LeaveRequests" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Leave Details
+                        @if (isEdit)
+                        {
+                            <span class="badge bg-primary ms-2">@Model.RequestNumber</span>
+                        }
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label asp-for="EmployeeId" class="form-label"></label>
+                            <select asp-for="EmployeeId" class="form-select select2" data-placeholder="Select employee">
+                                <option></option>
+                                @foreach (var e in Model.Employees)
+                                {
+                                    <option value="@e.Id" selected="@(e.Id == Model.EmployeeId)">@e.Name (@e.EmployeeCode)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-5">
+                            <label asp-for="LeaveTypeId" class="form-label"></label>
+                            <select asp-for="LeaveTypeId" class="form-select select2" data-placeholder="Select leave type">
+                                <option></option>
+                                @foreach (var t in Model.LeaveTypes)
+                                {
+                                    <option value="@t.Id" selected="@(t.Id == Model.LeaveTypeId)">@t.Name</option>
+                                }
+                            </select>
+                            <span asp-validation-for="LeaveTypeId" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="FromDate" class="form-label"></label>
+                            <input asp-for="FromDate" id="fromDate" type="date" class="form-control" />
+                            <span asp-validation-for="FromDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="ToDate" class="form-label"></label>
+                            <input asp-for="ToDate" id="toDate" type="date" class="form-control" />
+                            <span asp-validation-for="ToDate" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Total Days</label>
+                            <input id="totalDays" class="form-control fw-semibold" readonly disabled value="1" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Reason" class="form-label"></label>
+                            <textarea asp-for="Reason" class="form-control" rows="3" placeholder="Why is this leave needed?"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="LeaveRequests" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane me-1"></i> @(isEdit ? "Update Request" : "Submit Request")
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        function updateDays() {
+            const from = new Date(document.getElementById('fromDate').value);
+            const to = new Date(document.getElementById('toDate').value);
+            const out = document.getElementById('totalDays');
+
+            if (isNaN(from) || isNaN(to) || to < from) { out.value = '—'; return; }
+            out.value = Math.round((to - from) / 86400000) + 1;
+        }
+
+        document.getElementById('fromDate').addEventListener('change', updateDays);
+        document.getElementById('toDate').addEventListener('change', updateDays);
+        updateDays();
+    </script>
+}

@@ -1,0 +1,16 @@
+@host = https://localhost:59952
+@serial = ZK-DEVICE-SERIAL
+@sharedKey = REPLACE_WITH_PAYROLL_SETTINGS_API_KEY
+
+### ZKTeco options handshake
+GET {{host}}/api/zkteco/iclock/cdata?SN={{serial}}&KEY={{sharedKey}}
+
+### ADMS command poll
+GET {{host}}/api/zkteco/iclock/getrequest?SN={{serial}}&KEY={{sharedKey}}
+
+### Submit two attendance punches (PIN maps to EmployeeCode or employee Id)
+POST {{host}}/api/zkteco/iclock/cdata?SN={{serial}}&KEY={{sharedKey}}&table=ATTLOG&Stamp=0
+Content-Type: text/plain
+
+EMP-000001	2026-09-26 08:55:00	0	1	0	0	0	0
+EMP-000001	2026-09-26 17:10:00	1	1	0	0	0	0

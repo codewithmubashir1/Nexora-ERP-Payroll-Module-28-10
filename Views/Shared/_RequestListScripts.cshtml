@@ -1,0 +1,84 @@
+@model ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+@{
+    var tableId = Model.Controller + "Table";
+}
+
+<script>
+    (function () {
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const controller = '@Model.Controller';
+        const base = '/Payroll/' + controller;
+        const canApprove = @(Model.CanApprove ? "true" : "false");
+        const showAmount = @(Model.ShowAmount ? "true" : "false");
+
+        jQuery(function () {
+            const columns = [
+                { data: 'requestNumber' },
+                {
+                    data: null,
+                    render: row => `<div>${row.employeeName}</div><small class="text-muted">${row.employeeCode}</small>`
+                },
+                { data: 'departmentName', render: d => d || '—' },
+                { data: 'category', render: d => d || '—' },
+                { data: 'detail', render: d => d || '—' }
+            ];
+
+            if (showAmount) {
+                columns.push({
+                    data: 'amount', className: 'text-end',
+                    render: d => Number(d).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                });
+            }
+
+            columns.push({
+                data: 'createdOn',
+                render: d => d ? new Date(d).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'
+            });
+
+            columns.push({ data: 'status', render: d => statusBadge(d) });
+
+            columns.push({
+                data: null, orderable: false,
+                render: function (row) {
+                    let html = '<div class="text-end text-nowrap">';
+
+                    if (row.status === 'Pending') {
+                        html += `<a href="${base}/Edit/${row.id}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen"></i></a> `;
+
+                        if (canApprove) {
+                            html += `<button type="button" class="btn btn-sm btn-outline-success btn-approve" data-id="${row.id}" title="Approve"><i class="fa-solid fa-check"></i></button> `;
+                            html += `<button type="button" class="btn btn-sm btn-outline-warning btn-reject" data-id="${row.id}" title="Reject"><i class="fa-solid fa-xmark"></i></button> `;
+                        }
+
+                        html += `<button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${row.id}" title="Delete"><i class="fa-solid fa-trash"></i></button>`;
+                    } else {
+                        html += '<span class="text-muted small">—</span>';
+                    }
+
+                    return html + '</div>';
+                }
+            });
+
+            const table = jQuery('#@tableId').DataTable({
+                ajax: { url: base + '/GetAll', dataSrc: 'data' },
+                order: [[0, 'desc']],
+                columns: columns
+            });
+
+            const body = jQuery('#@tableId tbody');
+            const reload = () => table.ajax.reload(null, false);
+
+            body.on('click', '.btn-approve', function () {
+                approveVoucher(base + '/Approve', jQuery(this).data('id'), token, reload);
+            });
+
+            body.on('click', '.btn-reject', function () {
+                rejectVoucher(base + '/Reject', jQuery(this).data('id'), token, reload);
+            });
+
+            body.on('click', '.btn-delete', function () {
+                confirmDelete(base + '/Delete', token, reload, { id: jQuery(this).data('id') });
+            });
+        });
+    })();
+</script>

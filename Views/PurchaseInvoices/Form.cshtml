@@ -1,0 +1,341 @@
+@model ERP.Identity.Models.ViewModels.Purchase.PurchaseInvoiceViewModel
+@{
+    ViewData["Title"] = "New Purchase Invoice";
+}
+
+<form asp-controller="PurchaseInvoices" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header"><h3 class="card-title">Invoice Details</h3></div>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="InvoiceDate" class="form-label"></label>
+                    <input asp-for="InvoiceDate" class="form-control datepicker" data-invoice-date autocomplete="off" value="@Model.InvoiceDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PaymentTermsDays" class="form-label"></label>
+                    <select asp-for="PaymentTermsDays" id="paymentTermsSelect" class="form-select select2" data-payment-terms>
+                        <option value="">Custom / Not Set</option>
+                        <option value="0">On Receipt</option>
+                        <option value="7">7 Days</option>
+                        <option value="15">15 Days</option>
+                        <option value="30">30 Days</option>
+                        <option value="45">45 Days</option>
+                        <option value="60">60 Days</option>
+                        <option value="75">75 Days</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DueDate" class="form-label"></label>
+                    <input asp-for="DueDate" class="form-control datepicker" data-due-date autocomplete="off" value="@Model.DueDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PurchaseOrderId" class="form-label"></label>
+                    <select asp-for="PurchaseOrderId" id="poSelect" class="form-select select2" data-placeholder="Select a PO to auto-fill">
+                        <option></option>
+                        @foreach (var p in Model.PurchaseOrders) { <option value="@p.Id">@p.PONumber</option> }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="GoodsReceiptNoteId" class="form-label"></label>
+                    <select asp-for="GoodsReceiptNoteId" id="grnSelect" class="form-select select2" data-placeholder="Or select a GRN to auto-fill">
+                        <option></option>
+                        @foreach (var g in Model.GRNs) { <option value="@g.Id">@g.GRNNumber</option> }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="VendorId" class="form-label"></label>
+                    <select asp-for="VendorId" id="vendorSelect" class="form-select select2" data-placeholder="Select vendor">
+                        <option></option>
+                        @foreach (var v in Model.Vendors) { <option value="@v.Id" data-terms="@v.PaymentTermsDays">@v.Name (@v.VendorCode)</option> }
+                    </select>
+                    <span asp-validation-for="VendorId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="VendorInvoiceNumber" class="form-label"></label>
+                    <input asp-for="VendorInvoiceNumber" class="form-control" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="WithholdingTaxRate" class="form-label"></label>
+                    <select asp-for="WithholdingTaxRate" id="whtSelect" class="form-select select2" data-placeholder="No withholding tax">
+                        <option value="">No Withholding Tax</option>
+                        @foreach (var rate in new[] { 0m, 0.5m, 1m, 1.5m, 2m, 2.5m, 3m, 3.5m, 4m, 4.5m, 5m, 5.5m })
+                        {
+                            <option value="@rate.ToString(System.Globalization.CultureInfo.InvariantCulture)">@rate%</option>
+                        }
+                    </select>
+                    <div class="form-text">Deducted from the vendor's payment, calculated on the sub-total (before Sales Tax).</div>
+                </div>
+                <div class="col-12">
+                    <label asp-for="Remarks" class="form-label"></label>
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+            <div class="form-text mt-2">Selecting a PO or GRN fills the vendor and product lines below automatically (a GRN uses its accepted quantities and unit costs) — everything stays editable afterward.</div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Products</h3>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Row</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table align-middle mb-0" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width:24%">Product</th>
+                        <th style="width:10%">Quantity</th>
+                        <th style="width:12%">Unit Price</th>
+                        <th style="width:11%">Sales Tax</th>
+                        <th style="width:13%">Amount (Rs.)</th>
+                        <th style="width:20%">Remarks</th>
+                        <th style="width:10%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end">Sub Total</td>
+                        <td id="subTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end">Sales Tax</td>
+                        <td id="taxTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Gross Total</td>
+                        <td class="fw-bold" id="grossTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr id="whtRow" style="display:none;">
+                        <td colspan="4" class="text-end text-danger">Withholding Tax</td>
+                        <td class="text-danger" id="whtCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                    <tr id="netRow" style="display:none;">
+                        <td colspan="4" class="text-end fw-bold">Net Payable</td>
+                        <td class="fw-bold" id="netTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="PurchaseInvoices" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products ?? new List<ERP.Identity.Models.ViewModels.Inventory.ProductOption>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })) || [];
+            const SALES_TAX_OPTIONS = [16, 17, 18, 19];
+            let rowIndex = 0;
+
+            function productSelectOptions() {
+                return productOptions.map(function (p) { return `<option value="${p.id}">${p.name} (${p.code || p.sku})</option>`; }).join('');
+            }
+
+            function taxSelectOptions() {
+                return '<option value="">No Tax</option>' + SALES_TAX_OPTIONS.map(function (t) { return `<option value="${t}">${t}%</option>`; }).join('');
+            }
+
+            // prefill: { productId, quantity, unitPrice }
+            function addItemRow(prefill) {
+                const tbody = document.querySelector('#itemsTable tbody');
+                const tr = document.createElement('tr');
+                const qty = prefill ? prefill.quantity : '';
+                const price = prefill && prefill.unitPrice ? prefill.unitPrice : '';
+                tr.innerHTML = `
+                    <td>
+                        <select name="Items[${rowIndex}].ProductId" class="form-select select2-row" data-placeholder="Select product">
+                            <option></option>
+                            ${productSelectOptions()}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="0.001" min="0.001" name="Items[${rowIndex}].Quantity" class="form-control row-qty" value="${qty}" />
+                        <div class="packing-hint small text-muted mt-1"></div>
+                    </td>
+                    <td><input type="number" step="0.01" min="0" name="Items[${rowIndex}].UnitPrice" class="form-control row-price" value="${price}" /></td>
+                    <td>
+                        <select name="Items[${rowIndex}].TaxRate" class="form-select row-tax">
+                            ${taxSelectOptions()}
+                        </select>
+                    </td>
+                    <td class="row-amount fw-semibold">0.00</td>
+                    <td><input type="text" name="Items[${rowIndex}].Remarks" class="form-control" /></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                if (window.jQuery && jQuery.fn.select2) {
+                    const sel = jQuery(tr).find('.select2-row');
+                    sel.select2({ theme: 'bootstrap-5', width: '100%' });
+                    if (prefill) sel.val(prefill.productId).trigger('change');
+
+                    sel.on('select2:select change', function () {
+                        const product = productOptions.find(p => String(p.id) === String(this.value));
+                        if (!product) return;
+
+                        const priceInput = tr.querySelector('.row-price');
+                        if (product.costPrice > 0 && !priceInput.value) {
+                            priceInput.value = product.costPrice;
+                            recalcRow(tr);
+                        }
+
+                        tr.dataset.packingUnit = product.packingUnitName || '';
+                        tr.dataset.packingQty = product.packingQuantity || '';
+                        updatePackingHint(tr);
+                    });
+                }
+                recalcRow(tr);
+                rowIndex++;
+            }
+
+            function updatePackingHint(row) {
+                const hint = row.querySelector('.packing-hint');
+                if (!hint) return;
+                const packingQty = parseFloat(row.dataset.packingQty) || 0;
+                const unitName = row.dataset.packingUnit || '';
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+
+                if (packingQty > 0 && unitName && qty > 0) {
+                    hint.textContent = `≈ ${(qty / packingQty).toFixed(2)} ${unitName}(s)`;
+                } else {
+                    hint.textContent = '';
+                }
+            }
+
+            function clearRows() {
+                document.querySelector('#itemsTable tbody').innerHTML = '';
+                rowIndex = 0;
+                recalcTotals();
+            }
+
+            // Live calculation per row: Amount = Qty x Price x (1 + Tax% / 100).
+            // Footer: Sub Total (pre-tax), Sales Tax, Gross Total, and — if a
+            // Withholding Tax % is selected — Withholding Tax + Net Payable too.
+            function recalcRow(row) {
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                const taxPct = parseFloat(row.querySelector('.row-tax').value) || 0;
+                const amount = qty * price * (1 + taxPct / 100);
+                row.querySelector('.row-amount').textContent = amount.toFixed(2);
+                recalcTotals();
+            }
+
+            function recalcTotals() {
+                let subTotal = 0, grossTotal = 0;
+                document.querySelectorAll('#itemsTable tbody tr').forEach(function (row) {
+                    const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                    const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                    subTotal += qty * price;
+                    grossTotal += parseFloat(row.querySelector('.row-amount').textContent) || 0;
+                });
+                const taxTotal = grossTotal - subTotal;
+
+                document.getElementById('subTotalCell').textContent = subTotal.toFixed(2);
+                document.getElementById('taxTotalCell').textContent = taxTotal.toFixed(2);
+                document.getElementById('grossTotalCell').textContent = grossTotal.toFixed(2);
+
+                const whtPct = parseFloat(document.getElementById('whtSelect').value) || 0;
+                const whtRow = document.getElementById('whtRow');
+                const netRow = document.getElementById('netRow');
+
+                if (whtPct > 0) {
+                    const whtAmount = subTotal * whtPct / 100;
+                    document.getElementById('whtCell').textContent = '- ' + whtAmount.toFixed(2);
+                    document.getElementById('netTotalCell').textContent = (grossTotal - whtAmount).toFixed(2);
+                    whtRow.style.display = '';
+                    netRow.style.display = '';
+                } else {
+                    whtRow.style.display = 'none';
+                    netRow.style.display = 'none';
+                }
+            }
+
+            document.getElementById('addRowBtn').addEventListener('click', function () { addItemRow(); });
+
+            document.querySelector('#itemsTable tbody').addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                if (document.querySelectorAll('#itemsTable tbody tr').length <= 1) {
+                    notyf.error('At least one product row is required.');
+                    return;
+                }
+                btn.closest('tr').remove();
+                recalcTotals();
+            });
+
+            document.querySelector('#itemsTable tbody').addEventListener('input', function (e) {
+                if (e.target.classList.contains('row-qty') || e.target.classList.contains('row-price')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+                if (e.target.classList.contains('row-qty')) {
+                    updatePackingHint(e.target.closest('tr'));
+                }
+            });
+            document.querySelector('#itemsTable tbody').addEventListener('change', function (e) {
+                if (e.target.classList.contains('row-tax')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+            });
+            jQuery('#whtSelect').on('change', recalcTotals);
+
+            function populateFrom(url, label) {
+                fetch(url)
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        jQuery('#vendorSelect').val(data.vendorId).trigger('change');
+                        if (data.purchaseOrderId) jQuery('#poSelect').val(data.purchaseOrderId).trigger('change.select2');
+
+                        clearRows();
+                        if (data.items && data.items.length) {
+                            data.items.forEach(item => {
+                                addItemRow({ productId: item.productId, quantity: item.quantity, unitPrice: item.unitPrice });
+                            });
+                        } else {
+                            addItemRow();
+                        }
+                        notyf.success('Invoice pre-filled from ' + label);
+                    })
+                    .catch(() => notyf.error('Could not load details.'));
+            }
+
+            jQuery('#poSelect').on('change', function () {
+                const poId = this.value;
+                if (!poId) return;
+                populateFrom(`/Purchase/Orders/GetDetails/${poId}`, jQuery('#poSelect option:selected').text());
+            });
+
+            jQuery('#grnSelect').on('change', function () {
+                const grnId = this.value;
+                if (!grnId) return;
+                populateFrom(`/Purchase/GRN/GetDetails/${grnId}`, jQuery('#grnSelect option:selected').text());
+            });
+
+            jQuery('#vendorSelect').on('change', function () {
+                const termsSelect = document.getElementById('paymentTermsSelect');
+                if (termsSelect.value !== '') return;
+                const selected = this.options[this.selectedIndex];
+                const defaultTerms = selected ? selected.getAttribute('data-terms') : null;
+                if (defaultTerms === null || defaultTerms === '') return;
+                if (!Array.from(termsSelect.options).some(option => option.value === defaultTerms)) {
+                    termsSelect.add(new Option(`${defaultTerms} Days`, defaultTerms));
+                }
+                jQuery(termsSelect).val(defaultTerms).trigger('change');
+            });
+
+            setTimeout(function () { addItemRow(); }, 0);
+        });
+    </script>
+}

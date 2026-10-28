@@ -1,0 +1,133 @@
+@model ERP.Identity.Models.ViewModels.Accounts.AccountLedgerViewModel
+@{
+    ViewData["Title"] = "Cash Book & Account Ledger";
+}
+
+<div class="card daybook-toolbar">
+    <div class="card-header"><h3 class="card-title">Cash Book &amp; Account Ledger</h3></div>
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-lg-5">
+                <label class="form-label" for="accountSelect">Account</label>
+                <select id="accountSelect" class="form-select select2" data-placeholder="Select a ledger account">
+                    <option></option>
+                    @foreach (var account in Model.Accounts)
+                    {
+                        <option value="@account.Id">@account.AccountCode · @account.AccountName (@account.AccountType)</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label" for="fromDate">From</label>
+                <input id="fromDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3 col-lg-2">
+                <label class="form-label" for="toDate">To</label>
+                <input id="toDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-6 col-lg-3 d-flex gap-2">
+                <button type="button" id="loadLedgerBtn" class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i> Load</button>
+                <button type="button" id="exportLedgerBtn" class="btn btn-outline-secondary" disabled title="Export CSV"><i class="fa-solid fa-file-csv"></i></button>
+                <button type="button" id="printLedgerBtn" class="btn btn-outline-secondary" disabled title="Print"><i class="fa-solid fa-print"></i></button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="alert alert-info small daybook-note" role="note">
+    Asset and expense accounts normally carry debit balances: debits increase them and credits reduce them. Liability, equity, and income accounts normally carry credit balances. The remaining balance is shown positive on the account's normal side.
+</div>
+
+<section id="ledgerResult" class="d-none">
+    <div class="row g-3 mb-3">
+        <div class="col-sm-6 col-xl-3"><div class="daybook-summary"><span>Opening balance</span><strong id="openingBalance">0.00</strong></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="daybook-summary"><span>Debit total</span><strong id="totalDebit">0.00</strong></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="daybook-summary"><span>Credit total</span><strong id="totalCredit">0.00</strong></div></div>
+        <div class="col-sm-6 col-xl-3"><div class="daybook-summary"><span id="closingLabel">Remaining balance</span><strong id="closingBalance">0.00</strong></div></div>
+    </div>
+    <div class="card daybook-table-wrap">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 id="ledgerTitle" class="card-title mb-0"></h3>
+            <span id="normalSideLabel" class="small text-muted"></span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table id="accountLedgerTable" class="table table-sm table-striped table-hover align-middle mb-0">
+                    <thead><tr><th>Date</th><th>Journal #</th><th>Source</th><th>Description</th><th class="text-end">Debit</th><th class="text-end">Credit</th><th class="text-end">Remaining</th></tr></thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</section>
+<p id="ledgerEmpty" class="text-muted">Select an account to inspect posted cash, expense, salary, utility, tax, or other ledger activity.</p>
+
+@section Styles {
+    <style>
+        .daybook-summary { display:flex; flex-direction:column; gap:.35rem; min-height:82px; padding:.85rem 1rem; border:1px solid var(--bs-border-color); border-radius:8px; background:var(--bs-body-bg); }
+        .daybook-summary span { color:var(--bs-secondary); font-size:.8rem; }
+        .daybook-summary strong { color:var(--bs-dark); font-size:1.15rem; }
+        #accountLedgerTable th, #accountLedgerTable td { white-space:nowrap; }
+        #accountLedgerTable td:nth-child(4) { white-space:normal; min-width:220px; }
+        @@media print { .daybook-toolbar, .daybook-note, #ledgerEmpty, .app-header, .app-sidebar, .app-footer { display:none !important; } .daybook-table-wrap { border:0; } }
+    </style>
+}
+
+@section Scripts {
+    <script>
+        const money = value => Number(value).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const paramsForLedger = () => {
+            const accountId = document.getElementById('accountSelect').value;
+            const params = new URLSearchParams({ accountId });
+            const from = document.getElementById('fromDate').value;
+            const to = document.getElementById('toDate').value;
+            if (from) params.set('fromDate', from);
+            if (to) params.set('toDate', to);
+            return params;
+        };
+
+        document.getElementById('loadLedgerBtn').addEventListener('click', function () {
+            const accountId = document.getElementById('accountSelect').value;
+            if (!accountId) { notyf.error('Select an account first.'); return; }
+
+            const params = paramsForLedger();
+            fetch(`/Accounts/CashBook/GetLedger?${params}`)
+                .then(response => response.ok ? response.json() : response.text().then(message => Promise.reject(message)))
+                .then(data => {
+                    document.getElementById('openingBalance').textContent = money(data.openingBalance);
+                    document.getElementById('totalDebit').textContent = money(data.totalDebit);
+                    document.getElementById('totalCredit').textContent = money(data.totalCredit);
+                    document.getElementById('closingBalance').textContent = money(data.closingBalance);
+                    document.getElementById('closingLabel').textContent = `Remaining ${data.normalSide.toLowerCase()} balance`;
+                    document.getElementById('ledgerTitle').textContent = `${data.accountCode} · ${data.accountName}`;
+                    document.getElementById('normalSideLabel').textContent = `${data.accountType} · normal ${data.normalSide.toLowerCase()}`;
+
+                    const tbody = document.querySelector('#accountLedgerTable tbody');
+                    tbody.replaceChildren();
+                    data.rows.forEach(row => {
+                        const tr = document.createElement('tr');
+                        [new Date(row.date).toLocaleDateString('en-PK'), row.entryNumber, row.sourceType, row.description || '—',
+                            row.debit ? money(row.debit) : '—', row.credit ? money(row.credit) : '—', money(row.balance)]
+                            .forEach((value, index) => {
+                                const td = document.createElement('td');
+                                td.textContent = value;
+                                if (index >= 4) td.classList.add('text-end');
+                                tr.appendChild(td);
+                            });
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('ledgerEmpty').classList.add('d-none');
+                    document.getElementById('ledgerResult').classList.remove('d-none');
+                    document.getElementById('exportLedgerBtn').disabled = false;
+                    document.getElementById('printLedgerBtn').disabled = false;
+                })
+                .catch(message => notyf.error(message || 'Could not load the account ledger.'));
+        });
+
+        document.getElementById('exportLedgerBtn').addEventListener('click', function () {
+            window.location.href = `/Accounts/CashBook/Export?${paramsForLedger()}`;
+        });
+        document.getElementById('printLedgerBtn').addEventListener('click', function () { window.print(); });
+    </script>
+}

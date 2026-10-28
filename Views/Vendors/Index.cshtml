@@ -1,0 +1,83 @@
+@{
+    ViewData["Title"] = "Vendors";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Vendors</h3>
+        <div class="d-flex gap-2">
+            <button type="button" class="btn btn-outline-primary btn-sm" data-bs-toggle="modal" data-bs-target="#importVendorModal">
+                <i class="fa-solid fa-file-import me-1"></i> Import
+            </button>
+            <a asp-controller="Vendors" asp-action="Create" class="btn btn-primary btn-sm">
+                <i class="fa-solid fa-plus me-1"></i> New Vendor
+            </a>
+        </div>
+    </div>
+    <div class="card-body">
+        <table id="vendorsTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Code</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Contact</th>
+                    <th>Phone</th>
+                    <th>Terms (days)</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+<partial name="_ImportModal" model='new ERP.Identity.Models.ViewModels.ImportModalViewModel {
+    Id = "importVendorModal", Title = "Import Vendors",
+    ActionUrl = Url.Action("Import", "Vendors"),
+    TemplateUrl = Url.Action("Template", "Vendors"),
+    Description = "Create or update vendors in bulk. Matches existing vendors by Name. Category must match an existing vendor category name exactly."
+}' />
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        jQuery(function () {
+            const table = jQuery('#vendorsTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "Vendors")', dataSrc: 'data' },
+                order: [[0, 'desc']],
+                columns: [
+                    { data: 'vendorCode' },
+                    { data: 'name' },
+                    { data: 'categoryName' },
+                    { data: 'contactPerson', render: d => d || '—' },
+                    { data: 'phone', render: d => d || '—' },
+                    { data: 'paymentTermsDays' },
+                    {
+                        data: 'isActive',
+                        render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'
+                    },
+                    {
+                        data: 'id', orderable: false,
+                        render: id => `
+                            <div class="text-end">
+                                <a href="/Accounts/Ledgers?partyType=Vendor&partyId=${id}" class="btn btn-sm btn-outline-info" title="View vendor ledger"><i class="fa-solid fa-book-open"></i></a>
+                                <a href="/Purchase/Vendors/Edit/${id}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                            </div>`
+                    }
+                ]
+            });
+
+            jQuery('#vendorsTable tbody').on('click', '.btn-delete', function () {
+                const id = jQuery(this).data('id');
+                confirmDelete('@Url.Action("Delete", "Vendors")', token, function () { table.ajax.reload(); }, { id: id });
+            });
+
+            document.addEventListener('erp:import-success', function () { table.ajax.reload(); });
+        });
+    </script>
+}

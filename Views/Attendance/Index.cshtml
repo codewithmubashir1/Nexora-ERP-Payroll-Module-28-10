@@ -1,0 +1,192 @@
+@using ERP.Identity.Models.Payroll
+@model ERP.Identity.Models.ViewModels.Payroll.AttendanceEntryViewModel
+@{
+    ViewData["Title"] = "Enter Attendance";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Select Date &amp; Department</h3></div>
+    <div class="card-body">
+        <form asp-controller="Attendance" asp-action="Index" method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">From</label>
+                <input type="date" name="date" value="@Model.Date.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label">Through</label>
+                <input type="date" name="endDate" value="@Model.EndDate.ToString("yyyy-MM-dd")" class="form-control" />
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Department</label>
+                <select name="departmentId" class="form-select select2" data-placeholder="All departments">
+                    <option value="">All departments</option>
+                    @foreach (var d in Model.Departments)
+                    {
+                        <option value="@d.Id" selected="@(d.Id == Model.DepartmentId)">@d.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-5 d-flex gap-2">
+                <button type="submit" class="btn btn-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i> Load</button>
+                <a asp-controller="Attendance" asp-action="Export" asp-route-date="@Model.Date.ToString("yyyy-MM-dd")" asp-route-endDate="@Model.EndDate.ToString("yyyy-MM-dd")" asp-route-departmentId="@Model.DepartmentId" class="btn btn-outline-secondary text-nowrap"><i class="fa-solid fa-file-export me-1"></i> Export</a>
+                <button type="button" class="btn btn-outline-primary text-nowrap" data-bs-toggle="modal" data-bs-target="#importAttendanceModal"><i class="fa-solid fa-file-import me-1"></i> Import</button>
+            </div>
+        </form>
+
+        @if (!string.IsNullOrEmpty(Model.HolidayName))
+        {
+            <div class="alert alert-info mt-3 mb-0">
+                <i class="fa-solid fa-calendar-day me-1"></i>
+                <strong>@Model.Date.ToString("dd MMM yyyy")</strong> is a configured holiday: @Model.HolidayName.
+                Use <em>Mark all as Holiday</em> below unless people actually worked.
+            </div>
+        }
+    </div>
+</div>
+
+@if (Model.Rows.Count == 0)
+{
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-body text-center py-5">
+            <i class="fa-solid fa-user-slash fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No active employees match that filter.</p>
+        </div>
+    </div>
+}
+else
+{
+    <form asp-controller="Attendance" asp-action="Save" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" asp-for="Date" />
+        <input type="hidden" asp-for="EndDate" />
+        <input type="hidden" asp-for="DepartmentId" />
+
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+                <h3 class="card-title mb-0">
+                    Attendance @Model.Date.ToString("dd MMM yyyy")–@Model.EndDate.ToString("dd MMM yyyy")
+                    <span class="badge bg-secondary ms-1">@Model.Rows.Count employee(s)</span>
+                </h3>
+                <div class="btn-group btn-group-sm">
+                    <button type="button" class="btn btn-outline-success bulk-mark" data-status="Present">Rows Present</button>
+                    <button type="button" class="btn btn-outline-secondary bulk-mark" data-status="WeekOff">Rows Week Off</button>
+                    <button type="button" class="btn btn-outline-info bulk-mark" data-status="Holiday">Rows Holiday</button>
+                </div>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width:110px;">Date</th>
+                            <th style="width:110px;">Code</th>
+                            <th>Employee</th>
+                            <th>Department</th>
+                            <th>Shift</th>
+                            <th style="width:150px;">Status</th>
+                            <th style="width:130px;">Check In</th>
+                            <th style="width:130px;">Check Out</th>
+                            <th style="width:100px;">Net Hours</th>
+                            <th>Remarks</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @for (var i = 0; i < Model.Rows.Count; i++)
+                        {
+                            <tr data-break-minutes="@Model.Rows[i].BreakMinutes">
+                                <td>
+                                    <input type="hidden" asp-for="Rows[i].Date" />
+                                    <span class="small text-nowrap">@Model.Rows[i].Date.ToString("dd MMM")</span>
+                                </td>
+                                <td>
+                                    <input type="hidden" asp-for="Rows[i].EmployeeId" />
+                                    <span class="small text-muted">@Model.Rows[i].EmployeeCode</span>
+                                </td>
+                                <td>@Model.Rows[i].EmployeeName</td>
+                                <td class="small text-muted">@(Model.Rows[i].DepartmentName ?? "—")</td>
+                                <td class="small text-muted">@(Model.Rows[i].ShiftName ?? "Not set")</td>
+                                <td>
+                                    <select asp-for="Rows[i].Status" class="form-select form-select-sm status-select"
+                                            asp-items="Html.GetEnumSelectList<AttendanceStatus>()"></select>
+                                </td>
+                                <td><input asp-for="Rows[i].CheckInTime" type="time" class="form-control form-control-sm time-in" /></td>
+                                <td><input asp-for="Rows[i].CheckOutTime" type="time" class="form-control form-control-sm time-out" /></td>
+                                <td><output class="worked-hours">@Model.Rows[i].WorkedHours.ToString("0.00")</output></td>
+                                <td><input asp-for="Rows[i].Remarks" class="form-control form-control-sm" placeholder="Optional" /></td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <span class="text-muted small">
+                    Late and early-going minutes are worked out automatically from the shift timings
+                    and the rules in Payroll Settings.
+                </span>
+                <button type="submit" class="btn btn-primary">
+                    <i class="fa-solid fa-floppy-disk me-1"></i> Save Attendance
+                </button>
+            </div>
+        </div>
+    </form>
+}
+
+<partial name="_ImportModal" model='new ERP.Identity.Models.ViewModels.ImportModalViewModel {
+    Id = "importAttendanceModal", Title = "Import Attendance",
+    ActionUrl = Url.Action("Import", "Attendance"),
+    TemplateUrl = Url.Action("ImportTemplate", "Attendance"),
+    Description = "CSV columns: EmployeeCode, Date, Status, CheckInTime, CheckOutTime, Remarks. Existing employee/date rows are updated. Break-adjusted hours and late/early minutes are recalculated."
+}' />
+
+@section Scripts {
+    <script>
+        jQuery(function () {
+            // GetEnumSelectList posts the numeric enum value, so the buttons map by number.
+            const STATUS = { Present: '0', Absent: '1', Leave: '2', Holiday: '3', WeekOff: '4', HalfDay: '5' };
+            const WORKED = [STATUS.Present, STATUS.HalfDay, STATUS.Holiday, STATUS.WeekOff];
+
+            // Clear the time boxes when a day isn't worked — they're meaningless then.
+            function syncRow(row) {
+                const status = String(jQuery(row).find('.status-select').val());
+                jQuery(row).find('.time-in, .time-out').prop('disabled', !WORKED.includes(status));
+                updateHours(row);
+            }
+
+            function updateHours(row) {
+                const inValue = jQuery(row).find('.time-in').val();
+                const outValue = jQuery(row).find('.time-out').val();
+                if (!inValue || !outValue) { jQuery(row).find('.worked-hours').text('0.00'); return; }
+                const toMinutes = value => {
+                    const [hours, minutes] = value.split(':').map(Number);
+                    return hours * 60 + minutes;
+                };
+                const start = toMinutes(inValue);
+                const end = toMinutes(outValue);
+                const elapsed = end >= start ? end - start : (1440 - start) + end;
+                const breakMinutes = Number(row.dataset.breakMinutes) || 0;
+                const status = String(jQuery(row).find('.status-select').val());
+                const hours = WORKED.includes(status) ? Math.max(0, elapsed - breakMinutes) / 60 : 0;
+                jQuery(row).find('.worked-hours').text(hours.toFixed(2));
+            }
+
+            jQuery('table tbody tr').each(function () { syncRow(this); });
+
+            jQuery('table tbody').on('change', '.status-select', function () {
+                syncRow(jQuery(this).closest('tr'));
+            });
+            jQuery('table tbody').on('input change', '.time-in, .time-out', function () {
+                updateHours(jQuery(this).closest('tr'));
+            });
+
+            jQuery('.bulk-mark').on('click', function () {
+                const name = jQuery(this).data('status');
+                jQuery('.status-select').val(STATUS[name]).trigger('change');
+                notyf.success('All rows set to ' + name + '. Remember to save.');
+            });
+
+            // Disabled inputs don't post, so re-enable everything just before submit.
+            jQuery('form').on('submit', function () {
+                jQuery('.time-in, .time-out').prop('disabled', false);
+            });
+        });
+    </script>
+}

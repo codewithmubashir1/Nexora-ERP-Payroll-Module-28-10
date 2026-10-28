@@ -1,0 +1,100 @@
+@{
+    ViewData["Title"] = "Accounts";
+}
+
+<div class="row overview-kpi-grid">
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-primary animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="ad-cashAndBank">@(((decimal)ViewBag.CashAndBankBalance).ToString("N0"))</h3><p>Cash &amp; Bank Balance</p></div>
+            <div class="icon"><i class="fa-solid fa-wallet"></i></div>
+            <a asp-controller="ChartOfAccounts" asp-action="Index" class="small-box-footer">More info <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-success animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="ad-receivable">@(((decimal)ViewBag.TotalReceivable).ToString("N0"))</h3><p>Total Receivable</p></div>
+            <div class="icon"><i class="fa-solid fa-hand-holding-dollar"></i></div>
+            <a asp-controller="InvoicesAndRecoveries" asp-action="Index" class="small-box-footer">More info <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-warning animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner"><h3 id="ad-payable">@(((decimal)ViewBag.TotalPayable).ToString("N0"))</h3><p>Total Payable</p></div>
+            <div class="icon"><i class="fa-solid fa-money-bill-transfer"></i></div>
+            <a asp-controller="InvoicesAndRecoveries" asp-action="Index" class="small-box-footer">More info <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-3 col-6">
+        <div class="small-box bg-danger animate__animated animate__fadeInUp animate__delay-3s">
+            <div class="inner"><h3 id="ad-pendingApprovals">@ViewBag.PendingApprovals</h3><p>Pending Voucher Approvals</p></div>
+            <div class="icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <a asp-controller="AllVouchers" asp-action="Index" class="small-box-footer">Review <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-bolt me-2"></i>Quick Actions</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <a asp-controller="JournalVouchers" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-book d-block mb-1 fa-lg"></i> New Journal Voucher
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="CashPaymentVouchers" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-money-bill-wave d-block mb-1 fa-lg"></i> New Cash Payment
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="BankPaymentVouchers" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-building-columns d-block mb-1 fa-lg"></i> New Bank Payment
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="CashReceiptVouchers" asp-action="Create" class="btn btn-outline-primary w-100">
+                    <i class="fa-solid fa-hand-holding-dollar d-block mb-1 fa-lg"></i> New Cash Receipt
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="BankReceiptVouchers" asp-action="Create" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-file-invoice-dollar d-block mb-1 fa-lg"></i> New Bank Receipt
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="Ledgers" asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-book-open d-block mb-1 fa-lg"></i> View Ledgers
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="ChequesManagement" asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-money-check d-block mb-1 fa-lg"></i> Cheques Management
+                </a>
+            </div>
+            <div class="col-md-3">
+                <a asp-controller="ChartOfAccounts" asp-action="Index" class="btn btn-outline-secondary w-100">
+                    <i class="fa-solid fa-sitemap d-block mb-1 fa-lg"></i> Chart of Accounts
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function refreshAccountsDashboard() {
+            fetch('/Accounts/GetSummary')
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    document.getElementById('ad-cashAndBank').textContent = Number(data.cashAndBankBalance).toLocaleString('en-PK', { maximumFractionDigits: 0 });
+                    document.getElementById('ad-receivable').textContent = Number(data.totalReceivable).toLocaleString('en-PK', { maximumFractionDigits: 0 });
+                    document.getElementById('ad-payable').textContent = Number(data.totalPayable).toLocaleString('en-PK', { maximumFractionDigits: 0 });
+                    document.getElementById('ad-pendingApprovals').textContent = data.pendingApprovals;
+                })
+                .catch(() => { /* silent - keep last known values on transient failure */ });
+        }
+
+        setInterval(refreshAccountsDashboard, 20000);
+    </script>
+}

@@ -1,0 +1,185 @@
+@model ERP.Identity.Models.ViewModels.Payroll.PayslipGenerateViewModel
+@{
+    ViewData["Title"] = "Generate Payslips";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Choose Period &amp; Scope</h3></div>
+    <form asp-controller="Payslips" asp-action="Preview" method="post">
+        @Html.AntiForgeryToken()
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label asp-for="Month" class="form-label"></label>
+                    <select asp-for="Month" class="form-select">
+                        @for (var m = 1; m <= 12; m++)
+                        {
+                            <option value="@m" selected="@(m == Model.Month)">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Year" class="form-label"></label>
+                    <select asp-for="Year" class="form-select">
+                        @for (var y = DateTime.Today.Year - 5; y <= DateTime.Today.Year + 1; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.Year)">@y</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="DepartmentId" class="form-label"></label>
+                    <select asp-for="DepartmentId" class="form-select select2" data-placeholder="All departments">
+                        <option value="">All departments</option>
+                        @foreach (var d in Model.Departments)
+                        {
+                            <option value="@d.Id" selected="@(d.Id == Model.DepartmentId)">@d.Name</option>
+                        }
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="EmployeeId" class="form-label"></label>
+                    <select asp-for="EmployeeId" class="form-select select2" data-placeholder="All employees">
+                        <option value="">All employees</option>
+                        @foreach (var e in Model.Employees)
+                        {
+                            <option value="@e.Id" selected="@(e.Id == Model.EmployeeId)">@e.Name (@e.EmployeeCode)</option>
+                        }
+                    </select>
+                </div>
+
+                <div class="col-12">
+                    <div class="form-check form-switch">
+                        <input asp-for="IncludeOvertimeInNetPay" class="form-check-input" role="switch" />
+                        <label asp-for="IncludeOvertimeInNetPay" class="form-check-label"></label>
+                    </div>
+                    <div class="form-text">
+                        Off by default: net pay is
+                        <code>(basic &divide; 30 &times; working days) &minus; advance deducted &minus; fixed deduction</code>.
+                        Turn this on to add the overtime amount to net pay as well.
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="card-footer text-end">
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calculator me-1"></i> Calculate Preview</button>
+        </div>
+    </form>
+</div>
+
+@if (Model.HasPreview && Model.Preview.Count > 0)
+{
+    var generatable = Model.Preview.Where(p => !p.AlreadyGenerated).ToList();
+
+    <form asp-controller="Payslips" asp-action="Confirm" method="post">
+        @Html.AntiForgeryToken()
+        <input type="hidden" name="month" value="@Model.Month" />
+        <input type="hidden" name="year" value="@Model.Year" />
+        <input type="hidden" name="departmentId" value="@Model.DepartmentId" />
+        <input type="hidden" name="employeeId" value="@Model.EmployeeId" />
+        <input type="hidden" name="includeOvertimeInNetPay" value="@Model.IncludeOvertimeInNetPay.ToString().ToLowerInvariant()" />
+
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header d-flex justify-content-between align-items-center">
+                <h3 class="card-title mb-0">
+                    Preview &mdash; @(new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy"))
+                    <span class="badge bg-secondary ms-1">@Model.Preview.Count employee(s)</span>
+                </h3>
+                <span class="fw-semibold">Total net: @Model.Preview.Where(p => !p.AlreadyGenerated).Sum(p => p.NetPay).ToString("N2")</span>
+            </div>
+            <div class="card-body table-responsive">
+                <table class="table table-sm table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th style="width:36px;"><input type="checkbox" id="selectAll" class="form-check-input" checked /></th>
+                            <th>Employee</th>
+                            <th class="text-end">Basic</th>
+                            <th class="text-end">Days</th>
+                            <th class="text-end">Earned</th>
+                            <th class="text-end">OT Hrs</th>
+                            <th class="text-end">Late Hrs</th>
+                            <th class="text-end">Net Hrs</th>
+                            <th class="text-end">OT Amount</th>
+                            <th class="text-end">Prev. Adv.</th>
+                            <th class="text-end">New Adv.</th>
+                            <th class="text-end">Adv. Deducted</th>
+                            <th class="text-end">Adv. Left</th>
+                            <th class="text-end">Fixed Ded.</th>
+                            <th class="text-end">Net Pay</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var p in Model.Preview)
+                        {
+                            <tr class="@(p.AlreadyGenerated ? "table-warning" : "")">
+                                <td>
+                                    @if (p.AlreadyGenerated)
+                                    {
+                                        <i class="fa-solid fa-circle-check text-warning" title="Already generated"></i>
+                                    }
+                                    else
+                                    {
+                                        <input type="checkbox" name="selectedEmployeeIds" value="@p.EmployeeId" class="form-check-input row-check" checked />
+                                    }
+                                </td>
+                                <td>
+                                    <div>@p.EmployeeName</div>
+                                    <small class="text-muted">@p.EmployeeCode &middot; @(p.ShiftName ?? "No shift")</small>
+                                    @if (p.Notes.Count > 0)
+                                    {
+                                        <div class="small text-warning-emphasis">
+                                            @foreach (var note in p.Notes)
+                                            {
+                                                <div><i class="fa-solid fa-triangle-exclamation me-1"></i>@note</div>
+                                            }
+                                        </div>
+                                    }
+                                </td>
+                                <td class="text-end">@p.BasicSalary.ToString("N2")</td>
+                                <td class="text-end">@p.WorkingDays</td>
+                                <td class="text-end">@p.EarnedBasic.ToString("N2")</td>
+                                <td class="text-end">@p.OvertimeHours.ToString("N2")</td>
+                                <td class="text-end">@p.LateHours.ToString("N2")</td>
+                                <td class="text-end @(p.NetHours < 0 ? "text-danger" : "")">@p.NetHours.ToString("N2")</td>
+                                <td class="text-end">@p.OvertimeAmount.ToString("N2")</td>
+                                <td class="text-end">@p.AdvancePreviousBalance.ToString("N2")</td>
+                                <td class="text-end">@p.CurrentAdvanceGiven.ToString("N2")</td>
+                                <td class="text-end">@p.AdvanceDeducted.ToString("N2")</td>
+                                <td class="text-end">@p.AdvanceRemainingBalance.ToString("N2")</td>
+                                <td class="text-end">@p.FixedMonthlyDeduction.ToString("N2")</td>
+                                <td class="text-end fw-semibold @(p.NetPay < 0 ? "text-danger" : "")">@p.NetPay.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <span class="text-muted small">
+                    Rows highlighted in amber already have a payslip for this period and will be skipped.
+                </span>
+                <button type="submit" class="btn btn-success" disabled="@(generatable.Count == 0)">
+                    <i class="fa-solid fa-file-circle-check me-1"></i> Generate @generatable.Count Payslip(s)
+                </button>
+            </div>
+        </div>
+    </form>
+}
+else if (Model.HasPreview)
+{
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-body text-center py-5">
+            <i class="fa-solid fa-user-slash fa-2x text-muted mb-3"></i>
+            <p class="text-muted mb-0">No active employees match that filter.</p>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script>
+        jQuery(function () {
+            jQuery('#selectAll').on('change', function () {
+                jQuery('.row-check').prop('checked', this.checked);
+            });
+        });
+    </script>
+}

@@ -1,0 +1,182 @@
+@model ERP.Identity.Models.ViewModels.Accounts.LedgerViewModel
+@{
+    ViewData["Title"] = "Ledgers";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Party Ledger</h3></div>
+    <div class="card-body">
+        <div class="alert alert-info small" role="note">
+            <strong>How to read this ledger:</strong> Debit and Credit are accounting sides, not negative and positive values. For customers, a debit increases what they owe us and a credit reduces it. For vendors and employees, a credit increases what we owe them and a debit reduces it. The running balance uses that party's normal side, so a positive balance means the amount currently owed.
+        </div>
+        <div class="row g-3 mb-3">
+            <div class="col-md-3">
+                <label class="form-label">Party Type</label>
+                <select id="partyTypeSelect" class="form-select select2">
+                    <option value="Customer">Customer</option>
+                    <option value="Vendor">Vendor</option>
+                    <option value="Employee">Employee</option>
+                </select>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Party</label>
+                <select id="partySelect" class="form-select select2" data-placeholder="Select a party"></select>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="ledgerFromDate">From</label>
+                <input id="ledgerFromDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3">
+                <label class="form-label" for="ledgerToDate">To</label>
+                <input id="ledgerToDate" type="date" class="form-control" />
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="button" id="loadLedgerBtn" class="btn btn-primary w-100"><i class="fa-solid fa-magnifying-glass me-1"></i> Load Ledger</button>
+            </div>
+        </div>
+
+        <div id="ledgerResult" style="display:none;">
+            <div class="row g-3 mb-3">
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body py-2">
+                            <small class="text-muted d-block">Opening Balance</small>
+                            <strong id="openingBalanceDisplay">0.00</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body py-2">
+                            <small class="text-muted d-block">Total Debit</small>
+                            <strong id="totalDebitDisplay">0.00</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body py-2">
+                            <small class="text-muted d-block">Total Credit</small>
+                            <strong id="totalCreditDisplay">0.00</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card bg-light">
+                        <div class="card-body py-2">
+                            <small class="text-muted d-block">Closing Balance</small>
+                            <strong id="closingBalanceDisplay">0.00</strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mb-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary" id="printStatementBtn"><i class="fa-solid fa-print me-1"></i> Print / PDF / Excel</button>
+                <button type="button" class="btn btn-sm btn-outline-success" id="exportLedgerBtn"><i class="fa-solid fa-file-csv me-1"></i> Export CSV</button>
+            </div>
+            <table class="table table-striped" id="ledgerTable">
+                <thead>
+                    <tr>
+                        <th>Date</th>
+                        <th>Document Type</th>
+                        <th>Document #</th>
+                        <th>Description</th>
+                        <th>Debit</th>
+                        <th>Credit</th>
+                        <th>Running Balance</th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+            </table>
+        </div>
+        <div id="ledgerEmpty" class="text-muted">Select a party and click "Load Ledger" to see their transaction history.</div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const customers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Customers, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        const vendors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Vendors, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        const employees = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Employees, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+        function populatePartySelect() {
+            const type = document.getElementById('partyTypeSelect').value;
+            const select = document.getElementById('partySelect');
+            jQuery(select).empty();
+
+            const list = type === 'Customer' ? customers : (type === 'Vendor' ? vendors : employees);
+            const codeField = type === 'Customer' ? 'customerCode' : (type === 'Vendor' ? 'vendorCode' : 'employeeCode');
+
+            list.forEach(function (p) {
+                const opt = new Option(`${p.name} (${p[codeField]})`, p.id);
+                select.appendChild(opt);
+            });
+            jQuery(select).trigger('change');
+        }
+
+        function loadLedger() {
+            const partyType = document.getElementById('partyTypeSelect').value;
+            const partyId = document.getElementById('partySelect').value;
+            if (!partyId) { notyf.error('Select a party first.'); return; }
+
+            const fromDate = document.getElementById('ledgerFromDate').value;
+            const toDate = document.getElementById('ledgerToDate').value;
+            const params = new URLSearchParams({ partyType, partyId });
+            if (fromDate) params.set('fromDate', fromDate);
+            if (toDate) params.set('toDate', toDate);
+            fetch(`/Accounts/Ledgers/GetLedger?${params}`)
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    document.getElementById('openingBalanceDisplay').textContent = Number(data.openingBalance).toFixed(2);
+                    document.getElementById('closingBalanceDisplay').textContent = Number(data.closingBalance).toFixed(2);
+                    document.getElementById('totalDebitDisplay').textContent = Number(data.totalDebit).toFixed(2);
+                    document.getElementById('totalCreditDisplay').textContent = Number(data.totalCredit).toFixed(2);
+
+                    const tbody = document.querySelector('#ledgerTable tbody');
+                    tbody.innerHTML = '';
+                    data.rows.forEach(function (row) {
+                        const tr = document.createElement('tr');
+                        tr.innerHTML = `
+                            <td>${new Date(row.date).toLocaleDateString('en-PK')}</td>
+                            <td>${row.documentType}</td>
+                            <td>${row.documentNumber}</td>
+                            <td>${row.description || '—'}</td>
+                            <td>${row.debit > 0 ? Number(row.debit).toFixed(2) : '—'}</td>
+                            <td>${row.credit > 0 ? Number(row.credit).toFixed(2) : '—'}</td>
+                            <td>${Number(row.runningBalance).toFixed(2)}</td>
+                        `;
+                        tbody.appendChild(tr);
+                    });
+
+                    document.getElementById('ledgerEmpty').style.display = 'none';
+                    document.getElementById('ledgerResult').style.display = 'block';
+                    document.getElementById('printStatementBtn').dataset.url = `/Accounts/AccountStatements/Print?${params}`;
+                    document.getElementById('exportLedgerBtn').dataset.url = `/Accounts/Ledgers/Export?${params}`;
+                })
+                .catch(() => notyf.error('Could not load the ledger.'));
+        }
+
+        jQuery('#partyTypeSelect').on('change', populatePartySelect);
+        jQuery(document).ready(function () {
+            jQuery('#partyTypeSelect, #partySelect').select2({ theme: 'bootstrap-5', width: '100%' });
+            populatePartySelect();
+
+            const query = new URLSearchParams(window.location.search);
+            const partyType = query.get('partyType');
+            const partyId = query.get('partyId');
+            if (partyType && ['Customer', 'Vendor', 'Employee'].includes(partyType) && partyId) {
+                jQuery('#partyTypeSelect').val(partyType).trigger('change');
+                jQuery('#partySelect').val(partyId).trigger('change.select2');
+                loadLedger();
+            }
+        });
+
+        document.getElementById('loadLedgerBtn').addEventListener('click', loadLedger);
+        document.getElementById('printStatementBtn').addEventListener('click', function () {
+            if (this.dataset.url) window.open(this.dataset.url, '_blank', 'noopener');
+        });
+        document.getElementById('exportLedgerBtn').addEventListener('click', function () {
+            if (this.dataset.url) window.location.href = this.dataset.url;
+        });
+    </script>
+}

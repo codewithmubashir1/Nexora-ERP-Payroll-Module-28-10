@@ -1,0 +1,80 @@
+@model ERP.Identity.Models.ViewModels.Accounts.LedgerViewModel
+@{
+    ViewData["Title"] = "Account Statements";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Generate an Account Statement</h3></div>
+    <div class="card-body">
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="form-label">Party Type</label>
+                <select id="partyTypeSelect" class="form-select select2">
+                    <option value="Customer">Customer</option>
+                    <option value="Vendor">Vendor</option>
+                    <option value="Employee">Employee</option>
+                </select>
+            </div>
+            <div class="col-md-5">
+                <label class="form-label">Party</label>
+                <select id="partySelect" class="form-select select2" data-placeholder="Select a party"></select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">From Date</label>
+                <input type="date" id="fromDateInput" class="form-control" />
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">To Date</label>
+                <input type="date" id="toDateInput" class="form-control" />
+            </div>
+        </div>
+        <div class="form-text mt-2">Leave both dates blank for a full-history statement. Opens in a new tab, ready to print or export as PDF/Excel.</div>
+        <div class="text-end mt-3">
+            <button type="button" id="generateBtn" class="btn btn-primary"><i class="fa-solid fa-file-invoice me-1"></i> Generate Statement</button>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const customers = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Customers, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        const vendors = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Vendors, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+        const employees = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Employees, new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase }));
+
+        function populatePartySelect() {
+            const type = document.getElementById('partyTypeSelect').value;
+            const select = document.getElementById('partySelect');
+            jQuery(select).empty();
+
+            const list = type === 'Customer' ? customers : (type === 'Vendor' ? vendors : employees);
+            const codeField = type === 'Customer' ? 'customerCode' : (type === 'Vendor' ? 'vendorCode' : 'employeeCode');
+
+            list.forEach(function (p) {
+                const opt = new Option(`${p.name} (${p[codeField]})`, p.id);
+                select.appendChild(opt);
+            });
+            jQuery(select).trigger('change');
+        }
+
+        jQuery('#partyTypeSelect').on('change', populatePartySelect);
+        jQuery(document).ready(function () {
+            jQuery('#partyTypeSelect, #partySelect').select2({ theme: 'bootstrap-5', width: '100%' });
+            populatePartySelect();
+        });
+
+        document.getElementById('generateBtn').addEventListener('click', function () {
+            const partyType = document.getElementById('partyTypeSelect').value;
+            const partyId = document.getElementById('partySelect').value;
+            if (!partyId) { notyf.error('Select a party first.'); return; }
+
+            const fromDate = document.getElementById('fromDateInput').value;
+            const toDate = document.getElementById('toDateInput').value;
+
+            let url = `/Accounts/AccountStatements/Print?partyType=${partyType}&partyId=${partyId}`;
+            if (fromDate) url += `&fromDate=${fromDate}`;
+            if (toDate) url += `&toDate=${toDate}`;
+
+            window.open(url, '_blank');
+        });
+    </script>
+}

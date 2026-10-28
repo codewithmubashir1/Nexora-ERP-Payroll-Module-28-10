@@ -1,0 +1,154 @@
+@using ERP.Identity.Models.Inventory
+@model ERP.Identity.Models.Payroll.Payslip
+@{
+    ViewData["Title"] = $"Payslip {Model.PayslipNumber}";
+    var canApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove;
+    var period = new DateTime(Model.Year, Model.Month, 1).ToString("MMMM yyyy");
+    var e = Model.Employee;
+    var shiftHours = e?.ShiftTiming?.ShiftHours ?? 8m;
+    var hourlyRate = shiftHours > 0 ? Model.BasicSalary / 30m / shiftHours : 0m;
+    var earnedBasic = Math.Round(Model.BasicSalary / 30m * Model.WorkingDays, 2);
+
+    var statusClass = Model.Status switch
+    {
+        VoucherStatus.Approved => "badge-status-approved",
+        VoucherStatus.Rejected => "badge-status-rejected",
+        _ => "badge-status-pending"
+    };
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0">
+            @Model.PayslipNumber
+            <span class="badge @statusClass ms-2">@Model.Status</span>
+        </h3>
+        <div class="d-flex gap-2">
+            <a asp-controller="Payslips" asp-action="Print" asp-route-id="@Model.Id" target="_blank" class="btn btn-outline-secondary btn-sm">
+                <i class="fa-solid fa-print me-1"></i> Print
+            </a>
+            @if (canApprove && Model.Status == VoucherStatus.Pending)
+            {
+                <button type="button" id="btnApprove" class="btn btn-success btn-sm"><i class="fa-solid fa-check me-1"></i> Approve</button>
+                <button type="button" id="btnReject" class="btn btn-warning btn-sm"><i class="fa-solid fa-xmark me-1"></i> Reject</button>
+            }
+            <a asp-controller="Payslips" asp-action="Index" class="btn btn-outline-secondary btn-sm">Back</a>
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Status == VoucherStatus.Rejected && !string.IsNullOrEmpty(Model.RejectionReason))
+        {
+            <div class="alert alert-danger">
+                <strong>Rejected:</strong> @Model.RejectionReason
+            </div>
+        }
+
+        <div class="row g-4">
+            <div class="col-md-6">
+                <h6 class="text-uppercase text-muted small">Employee</h6>
+                <table class="table table-sm mb-0">
+                    <tr><td class="text-muted">Name</td><td class="fw-semibold">@(e?.Name ?? "—")</td></tr>
+                    <tr><td class="text-muted">Code</td><td>@(e?.EmployeeCode ?? "—")</td></tr>
+                    <tr><td class="text-muted">Department</td><td>@(e?.DepartmentRef?.Name ?? e?.Department ?? "—")</td></tr>
+                    <tr><td class="text-muted">Designation</td><td>@(e?.Designation ?? "—")</td></tr>
+                    <tr><td class="text-muted">Shift</td><td>@(e?.ShiftTiming?.Name ?? "Not set") (@shiftHours.ToString("0.##") h)</td></tr>
+                    <tr><td class="text-muted">Bank</td><td>@(e?.BankName ?? "—") @(string.IsNullOrEmpty(e?.BankAccountNumber) ? "" : $"· {e!.BankAccountNumber}")</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6 class="text-uppercase text-muted small">Period &amp; Attendance</h6>
+                <table class="table table-sm mb-0">
+                    <tr><td class="text-muted">Pay Period</td><td class="fw-semibold">@period</td></tr>
+                    <tr><td class="text-muted">Pay Run</td><td>@(Model.PayRun?.RunNumber ?? "Standalone")</td></tr>
+                    <tr><td class="text-muted">Working (payable) Days</td><td>@Model.WorkingDays</td></tr>
+                    <tr><td class="text-muted">Present / Absent / Leave</td><td>@Model.PresentDays / @Model.AbsentDays / @Model.LeaveDays</td></tr>
+                    <tr><td class="text-muted">Generated</td><td>@Model.CreatedOn.ToString("dd MMM yyyy")</td></tr>
+                    <tr><td class="text-muted">Approved By</td><td>@(Model.ApprovedByName ?? "—")</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-6">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title">Earnings</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tr><td>Basic salary (full month)</td><td class="text-end">@Model.BasicSalary.ToString("N2")</td></tr>
+                    <tr>
+                        <td>Earned basic <small class="text-muted">(basic &divide; 30 &times; @Model.WorkingDays days)</small></td>
+                        <td class="text-end fw-semibold">@earnedBasic.ToString("N2")</td>
+                    </tr>
+                    <tr><td>House rent allowance</td><td class="text-end">@Model.HouseRentAllowance.ToString("N2")</td></tr>
+                    <tr><td>Medical allowance</td><td class="text-end">@Model.MedicalAllowance.ToString("N2")</td></tr>
+                    <tr><td>Other allowances</td><td class="text-end">@Model.OtherAllowances.ToString("N2")</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title">Overtime</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tr><td>Hourly rate <small class="text-muted">(basic &divide; 30 &divide; @shiftHours.ToString("0.##") h)</small></td><td class="text-end">@hourlyRate.ToString("N2")</td></tr>
+                    <tr><td>Overtime hours</td><td class="text-end">@Model.OvertimeHours.ToString("N2")</td></tr>
+                    <tr><td>Late hours</td><td class="text-end">@Model.LateHours.ToString("N2")</td></tr>
+                    <tr class="table-light"><td>Net hours <small class="text-muted">(overtime &minus; late)</small></td><td class="text-end fw-semibold @(Model.NetHours < 0 ? "text-danger" : "")">@Model.NetHours.ToString("N2")</td></tr>
+                    <tr><td>Overtime amount <small class="text-muted">(net hours &times; hourly rate)</small></td><td class="text-end fw-semibold">@Model.OvertimeAmount.ToString("N2")</td></tr>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title">Advance Account</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tr><td>Previous balance</td><td class="text-end">@Model.AdvancePreviousBalance.ToString("N2")</td></tr>
+                    <tr><td>Advance given this month</td><td class="text-end">@Model.CurrentAdvanceGiven.ToString("N2")</td></tr>
+                    <tr class="table-light"><td>Total advance</td><td class="text-end fw-semibold">@Model.TotalAdvance.ToString("N2")</td></tr>
+                    <tr><td>Deducted from this salary</td><td class="text-end text-danger">@Model.AdvanceDeducted.ToString("N2")</td></tr>
+                    <tr class="table-light"><td>Remaining balance</td><td class="text-end fw-semibold">@Model.AdvanceRemainingBalance.ToString("N2")</td></tr>
+                </table>
+            </div>
+        </div>
+
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title">Deductions &amp; Net Pay</h3></div>
+            <div class="card-body p-0">
+                <table class="table table-sm mb-0">
+                    <tr><td>Advance deducted</td><td class="text-end">@Model.AdvanceDeducted.ToString("N2")</td></tr>
+                    <tr><td>Fixed monthly deduction <small class="text-muted">(to employee ledger)</small></td><td class="text-end">@Model.FixedMonthlyDeduction.ToString("N2")</td></tr>
+                    <tr><td>Income tax</td><td class="text-end">@Model.IncomeTaxDeduction.ToString("N2")</td></tr>
+                    <tr><td>Statutory deductions</td><td class="text-end">@Model.StatutoryDeductions.ToString("N2")</td></tr>
+                    <tr><td>Other deductions</td><td class="text-end">@Model.OtherDeductions.ToString("N2")</td></tr>
+                    <tr class="table-light"><td>Total deductions</td><td class="text-end fw-semibold">@Model.TotalDeductions.ToString("N2")</td></tr>
+                </table>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <span class="fs-6 fw-semibold">Net Payable</span>
+                <span class="fs-4 fw-bold @(Model.NetPay < 0 ? "text-danger" : "text-success")">@Model.NetPay.ToString("N2")</span>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const back = () => window.location.reload();
+
+        document.getElementById('btnApprove')?.addEventListener('click', function () {
+            approveVoucher('@Url.Action("Approve", "Payslips")', @Model.Id, token, back);
+        });
+
+        document.getElementById('btnReject')?.addEventListener('click', function () {
+            rejectVoucher('@Url.Action("Reject", "Payslips")', @Model.Id, token, back);
+        });
+    </script>
+}

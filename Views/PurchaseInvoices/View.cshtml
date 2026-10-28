@@ -1,0 +1,70 @@
+@model ERP.Identity.Models.Purchase.PurchaseInvoice
+@using ERP.Identity.Models.Inventory
+@{
+    ViewData["Title"] = $"Invoice {Model.InvoiceNumber}";
+    var canApprove = (bool)(ViewBag.CanApprove ?? false);
+    var paidAmount = (decimal)(ViewBag.PaidAmount ?? 0m);
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">Invoice @Model.InvoiceNumber</h3>
+        <a asp-controller="PurchaseInvoices" asp-action="Index" class="btn btn-sm btn-outline-secondary"><i class="fa-solid fa-arrow-left me-1"></i> Back</a>
+    </div>
+    <div class="card-body">
+        <div class="row g-3 mb-3 align-items-center">
+            <div class="col-md-3"><small class="text-muted d-block">Date</small><strong>@Model.InvoiceDate.ToString("dd MMM yyyy")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Vendor</small><strong>@Model.Vendor?.Name</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Vendor Invoice No.</small><strong>@(Model.VendorInvoiceNumber ?? "—")</strong></div>
+            <div class="col-md-3">
+                <small class="text-muted d-block">Status</small>
+                @if (Model.Status == VoucherStatus.Pending) { <span class="badge badge-status-pending">Pending</span> }
+                else if (Model.Status == VoucherStatus.Approved) { <span class="badge badge-status-approved">Approved</span> }
+                else { <span class="badge badge-status-rejected">Rejected</span> }
+            </div>
+            <div class="col-md-3"><small class="text-muted d-block">Linked PO</small><strong>@(Model.PurchaseOrder?.PONumber ?? "—")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Linked GRN</small><strong>@(Model.GoodsReceiptNote?.GRNNumber ?? "—")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Total</small><strong>@Model.TotalAmount.ToString("N2")</strong></div>
+            <div class="col-md-3"><small class="text-muted d-block">Paid / Balance</small><strong>@paidAmount.ToString("N2") / @((Model.TotalAmount - paidAmount).ToString("N2"))</strong></div>
+        </div>
+
+        <table class="table table-striped">
+            <thead><tr><th>SKU</th><th>Product</th><th>Qty</th><th>Unit Price</th><th>Tax %</th><th>Total</th></tr></thead>
+            <tbody>
+                @foreach (var item in Model.Items)
+                {
+                    <tr>
+                        <td>@item.Product?.Sku</td>
+                        <td>@item.Product?.Name</td>
+                        <td>@item.Quantity</td>
+                        <td>@item.UnitPrice.ToString("N2")</td>
+                        <td>@(item.TaxRate?.ToString("N2") ?? "—")</td>
+                        <td>@item.LineTotal.ToString("N2")</td>
+                    </tr>
+                }
+            </tbody>
+            <tfoot><tr><th colspan="5" class="text-end">Total</th><th>@Model.TotalAmount.ToString("N2")</th></tr></tfoot>
+        </table>
+    </div>
+    @if (canApprove && Model.Status == VoucherStatus.Pending)
+    {
+        <div class="card-footer text-end">
+            <button type="button" id="rejectBtn" class="btn btn-outline-danger"><i class="fa-solid fa-xmark me-1"></i> Reject</button>
+            <button type="button" id="approveBtn" class="btn btn-success"><i class="fa-solid fa-check me-1"></i> Approve</button>
+        </div>
+    }
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        document.getElementById('approveBtn')?.addEventListener('click', function () {
+            approveVoucher('@Url.Action("Approve", "PurchaseInvoices")', @Model.Id, token, function () { location.reload(); });
+        });
+        document.getElementById('rejectBtn')?.addEventListener('click', function () {
+            rejectVoucher('@Url.Action("Reject", "PurchaseInvoices")', @Model.Id, token, function () { location.reload(); });
+        });
+    </script>
+}

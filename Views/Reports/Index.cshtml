@@ -1,0 +1,112 @@
+@model ERP.Identity.Models.ViewModels.ReportsViewModel
+@{
+    ViewData["Title"] = "Reports";
+}
+
+<div class="card animate__animated animate__fadeIn report-filter">
+    <div class="card-header"><h3 class="card-title">Report Builder</h3></div>
+    <div class="card-body">
+        <form id="reportForm" class="row g-3 align-items-end">
+            <div class="col-lg-5">
+                <label for="entitySelect" class="form-label">Report entity</label>
+                <select id="entitySelect" class="form-select select2" data-placeholder="Choose entity">
+                    <option></option>
+                    @foreach (var report in Model.ReportTypes)
+                    {
+                        <option value="@report.Key" data-date-field="@report.DateField">@report.Label</option>
+                    }
+                </select>
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label for="fromDate" class="form-label">From date</label>
+                <input id="fromDate" type="date" class="form-control" value="@DateTime.Today.AddMonths(-1).ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-sm-6 col-lg-2">
+                <label for="toDate" class="form-label">To date</label>
+                <input id="toDate" type="date" class="form-control" value="@DateTime.Today.ToString("yyyy-MM-dd")" />
+            </div>
+            <div class="col-lg-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i> Run</button>
+                <button type="button" id="printReportBtn" class="btn btn-outline-secondary" disabled title="Open print, PDF, Excel and share actions"><i class="fa-solid fa-print"></i></button>
+                <button type="button" id="exportReportBtn" class="btn btn-outline-success" disabled title="Download CSV"><i class="fa-solid fa-file-csv"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div id="reportSummary" class="d-none alert alert-info py-2 small"></div>
+<div id="reportResults" class="card d-none">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title mb-0" id="reportTitle">Report</h3>
+        <span class="small text-muted" id="reportCount"></span>
+    </div>
+    <div class="card-body">
+        <table id="reportTable" class="table table-sm table-striped table-hover align-middle w-100">
+            <thead><tr id="reportHead"></tr></thead>
+            <tbody></tbody>
+        </table>
+    </div>
+</div>
+<div id="reportEmpty" class="text-muted">Choose an entity and date range to run a report. Available reports are generated from date-bearing application records.</div>
+
+@section Scripts {
+    <script>
+        let reportTable = null;
+        let activeReportParams = null;
+
+        function appendCell(row, value, header) {
+            const cell = document.createElement(header ? 'th' : 'td');
+            cell.textContent = value ?? '';
+            row.appendChild(cell);
+        }
+
+        jQuery('#reportForm').on('submit', function (event) {
+            event.preventDefault();
+            const entity = document.getElementById('entitySelect').value;
+            const fromDate = document.getElementById('fromDate').value;
+            const toDate = document.getElementById('toDate').value;
+            if (!entity || !fromDate || !toDate) { notyf.error('Select an entity and both dates.'); return; }
+            if (fromDate > toDate) { notyf.error('From date must be on or before To date.'); return; }
+
+            activeReportParams = new URLSearchParams({ entity, fromDate, toDate });
+            const runButton = this.querySelector('button[type="submit"]');
+            runButton.disabled = true;
+            fetch(`/Reports/GetData?${activeReportParams}`)
+                .then(response => response.ok ? response.json() : response.text().then(message => Promise.reject(message)))
+                .then(data => {
+                    if (reportTable) { reportTable.destroy(); reportTable = null; }
+                    const header = document.getElementById('reportHead');
+                    const body = document.querySelector('#reportTable tbody');
+                    header.replaceChildren();
+                    body.replaceChildren();
+                    const headerRow = document.createElement('tr');
+                    data.columns.forEach(column => appendCell(headerRow, column, true));
+                    header.appendChild(headerRow);
+                    data.rows.forEach(values => {
+                        const row = document.createElement('tr');
+                        values.forEach(value => appendCell(row, value, false));
+                        body.appendChild(row);
+                    });
+
+                    document.getElementById('reportTitle').textContent = jQuery('#entitySelect option:selected').text();
+                    document.getElementById('reportCount').textContent = `${data.rows.length.toLocaleString('en-PK')} record(s)`;
+                    document.getElementById('reportSummary').textContent = `${fromDate} to ${toDate} · filtered by ${jQuery('#entitySelect option:selected').data('date-field')}`;
+                    document.getElementById('reportSummary').classList.remove('d-none');
+                    document.getElementById('reportEmpty').classList.add('d-none');
+                    document.getElementById('reportResults').classList.remove('d-none');
+                    document.getElementById('printReportBtn').disabled = false;
+                    document.getElementById('exportReportBtn').disabled = false;
+                    reportTable = jQuery('#reportTable').DataTable({ order: [], pageLength: 25, responsive: true });
+                })
+                .catch(message => notyf.error(message || 'Could not load this report.'))
+                .finally(() => { runButton.disabled = false; });
+        });
+
+        document.getElementById('exportReportBtn').addEventListener('click', function () {
+            if (activeReportParams) window.location.href = `/Reports/Export?${activeReportParams}`;
+        });
+        document.getElementById('printReportBtn').addEventListener('click', function () {
+            if (activeReportParams) window.open(`/Reports/Print?${activeReportParams}`, '_blank', 'noopener');
+        });
+    </script>
+}

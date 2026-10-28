@@ -1,0 +1,105 @@
+@{
+    ViewData["Title"] = "Cheques Management";
+    var canManage = User.IsInRole("Admin") || User.IsInRole("Manager") || User.IsInRole("Accountant");
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title">Cheques Management</h3>
+        <div class="d-flex gap-2">
+            <select id="directionFilter" class="form-select form-select-sm" style="width:180px;">
+                <option value="">All Directions</option>
+                <option value="Issued (Payment)">Issued (Payment)</option>
+                <option value="Received">Received</option>
+            </select>
+            <select id="statusFilter" class="form-select form-select-sm" style="width:160px;">
+                <option value="">All Statuses</option>
+                <option value="Outstanding">Outstanding</option>
+                <option value="Cleared">Cleared</option>
+                <option value="Bounced">Bounced</option>
+                <option value="Cancelled">Cancelled</option>
+            </select>
+        </div>
+    </div>
+    <div class="card-body">
+        <div class="form-text mb-2">Combines Issued Cheques (Purchase payments), Received Cheques (Sales payments), and cheque-based Bank Payment/Receipt Vouchers into one register.</div>
+        <table id="chequesTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Direction</th>
+                    <th>Cheque #</th>
+                    <th>Date</th>
+                    <th>Bank</th>
+                    <th>Party</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const canManage = @Json.Serialize(canManage);
+
+        function clearanceBadge(status) {
+            const map = { Outstanding: 'bg-warning', Cleared: 'bg-success', Bounced: 'bg-danger', Cancelled: 'bg-secondary' };
+            return `<span class="badge ${map[status] || 'bg-secondary'}">${status}</span>`;
+        }
+
+        jQuery(function () {
+            const table = jQuery('#chequesTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "ChequesManagement")', dataSrc: 'data' },
+                order: [[2, 'desc']],
+                columns: [
+                    { data: 'direction' },
+                    { data: 'chequeNumber' },
+                    { data: 'chequeDate', render: d => new Date(d).toLocaleDateString('en-PK') },
+                    { data: 'bankName', render: d => d || '—' },
+                    { data: 'partyName' },
+                    { data: 'amount', render: d => Number(d).toFixed(2) },
+                    { data: 'clearanceStatus', render: d => clearanceBadge(d) },
+                    {
+                        data: null, orderable: false,
+                        render: function (row) {
+                            if (!canManage || row.clearanceStatus !== 'Outstanding') return '';
+                            return `<div class="text-end">
+                                <button type="button" class="btn btn-sm btn-outline-success btn-clear" data-source="${row.source}" data-id="${row.id}" title="Mark Cleared"><i class="fa-solid fa-check"></i></button>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-bounce" data-source="${row.source}" data-id="${row.id}" title="Mark Bounced"><i class="fa-solid fa-xmark"></i></button>
+                            </div>`;
+                        }
+                    }
+                ]
+            });
+
+            jQuery('#directionFilter').on('change', function () { table.column(0).search(this.value).draw(); });
+            jQuery('#statusFilter').on('change', function () { table.column(6).search(this.value).draw(); });
+
+            function setClearance(source, id, status) {
+                fetch('@Url.Action("SetClearance", "ChequesManagement")', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'RequestVerificationToken': token },
+                    body: `source=${encodeURIComponent(source)}&id=${id}&status=${status}`
+                })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (data.success) { notyf.success(data.message); table.ajax.reload(); }
+                        else { notyf.error(data.message); }
+                    })
+                    .catch(() => notyf.error('Request failed. Please try again.'));
+            }
+
+            jQuery('#chequesTable tbody').on('click', '.btn-clear', function () {
+                setClearance(jQuery(this).data('source'), jQuery(this).data('id'), 1);
+            });
+            jQuery('#chequesTable tbody').on('click', '.btn-bounce', function () {
+                setClearance(jQuery(this).data('source'), jQuery(this).data('id'), 2);
+            });
+        });
+    </script>
+}

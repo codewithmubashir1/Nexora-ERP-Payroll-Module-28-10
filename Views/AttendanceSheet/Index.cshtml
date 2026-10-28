@@ -1,0 +1,141 @@
+@model ERP.Identity.Models.ViewModels.Payroll.AttendanceSheetViewModel
+@{
+    ViewData["Title"] = "Attendance Sheet";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header"><h3 class="card-title">Filter</h3></div>
+    <div class="card-body">
+        <form asp-controller="AttendanceSheet" asp-action="Index" method="get" class="row g-3 align-items-end">
+            <div class="col-md-3">
+                <label class="form-label">Month</label>
+                <select name="month" class="form-select">
+                    @for (var m = 1; m <= 12; m++)
+                    {
+                        <option value="@m" selected="@(m == Model.Month)">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-2">
+                <label class="form-label">Year</label>
+                <select name="year" class="form-select">
+                    @for (var y = DateTime.Today.Year - 5; y <= DateTime.Today.Year + 1; y++)
+                    {
+                        <option value="@y" selected="@(y == Model.Year)">@y</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Department</label>
+                <select name="departmentId" class="form-select select2" data-placeholder="All departments">
+                    <option value="">All departments</option>
+                    @foreach (var d in Model.Departments)
+                    {
+                        <option value="@d.Id" selected="@(d.Id == Model.DepartmentId)">@d.Name</option>
+                    }
+                </select>
+            </div>
+            <div class="col-md-3 d-flex gap-2">
+                <button type="submit" class="btn btn-primary flex-fill"><i class="fa-solid fa-magnifying-glass me-1"></i> Show</button>
+                <a class="btn btn-outline-secondary flex-fill"
+                   asp-controller="AttendanceSheet" asp-action="Export"
+                   asp-route-month="@Model.Month" asp-route-year="@Model.Year" asp-route-departmentId="@Model.DepartmentId">
+                    <i class="fa-solid fa-file-csv me-1"></i> Export
+                </a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <h3 class="card-title mb-0">@Model.MonthName</h3>
+        <div class="small">
+            <span class="att-legend att-present">P</span> Present
+            <span class="att-legend att-absent">A</span> Absent
+            <span class="att-legend att-leave">L</span> Leave
+            <span class="att-legend att-holiday">H</span> Holiday
+            <span class="att-legend att-weekoff">W</span> Week Off
+            <span class="att-legend att-halfday">&frac12;</span> Half Day
+        </div>
+    </div>
+    <div class="card-body">
+        @if (Model.Rows.Count == 0)
+        {
+            <p class="text-muted mb-0">No active employees match that filter.</p>
+        }
+        else
+        {
+            <div class="table-responsive">
+                <table class="table table-sm table-bordered attendance-sheet align-middle mb-0">
+                    <thead>
+                        <tr>
+                            <th class="sticky-col">Employee</th>
+                            @for (var day = 1; day <= Model.DaysInMonth; day++)
+                            {
+                                var isHoliday = Model.Holidays.ContainsKey(day);
+                                <th class="text-center @(isHoliday ? "table-info" : "")"
+                                    title="@(isHoliday ? Model.Holidays[day] : new DateTime(Model.Year, Model.Month, day).ToString("dddd"))">
+                                    @day
+                                </th>
+                            }
+                            <th class="text-end">P</th>
+                            <th class="text-end">A</th>
+                            <th class="text-end">L</th>
+                            <th class="text-end">Late</th>
+                            <th class="text-end">Late Hrs</th>
+                            <th class="text-end">Attendance Hrs</th>
+                            <th class="text-end">OT Hrs</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var row in Model.Rows)
+                        {
+                            <tr>
+                                <td class="sticky-col">
+                                    <div class="fw-semibold">@row.EmployeeName</div>
+                                    <small class="text-muted">@row.EmployeeCode</small>
+                                </td>
+                                @foreach (var cell in row.Cells)
+                                {
+                                    <td class="text-center att-cell @cell.CssClass" title="@cell.Tooltip">@cell.Code</td>
+                                }
+                                <td class="text-end">@row.PresentDays</td>
+                                <td class="text-end">@row.AbsentDays</td>
+                                <td class="text-end">@row.LeaveDays</td>
+                                <td class="text-end">@row.LateCount</td>
+                                <td class="text-end">@row.LateHours.ToString("0.00")</td>
+                                <td class="text-end">@row.AttendanceHours.ToString("0.00")</td>
+                                <td class="text-end">@row.OvertimeHours.ToString("0.00")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        }
+    </div>
+</div>
+
+@section Styles {
+    <style>
+        .attendance-sheet th, .attendance-sheet td { font-size: .75rem; padding: .3rem .35rem; white-space: nowrap; }
+        .attendance-sheet .sticky-col {
+            position: sticky; left: 0; z-index: 2;
+            background: var(--bs-body-bg); min-width: 180px;
+        }
+        .attendance-sheet thead .sticky-col { z-index: 3; }
+        .att-cell { font-weight: 700; }
+        .att-present { background-color: rgba(22,163,74,.16); color: #15803d; }
+        .att-absent  { background-color: rgba(239,68,68,.16); color: #b91c1c; }
+        .att-leave   { background-color: rgba(59,130,246,.16); color: #1d4ed8; }
+        .att-holiday { background-color: rgba(168,85,247,.16); color: #7e22ce; }
+        .att-weekoff { background-color: rgba(107,114,128,.16); color: #4b5563; }
+        .att-halfday { background-color: rgba(234,179,8,.20); color: #a16207; }
+        .att-none    { color: var(--bs-secondary-color); }
+        .att-late    { box-shadow: inset 0 -3px 0 #f97316; }
+        .att-legend {
+            display: inline-block; width: 1.4rem; text-align: center; font-weight: 700;
+            border-radius: .2rem; margin-left: .6rem; margin-right: .15rem;
+        }
+    </style>
+}

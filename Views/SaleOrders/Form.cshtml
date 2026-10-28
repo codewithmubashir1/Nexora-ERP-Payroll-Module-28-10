@@ -1,0 +1,211 @@
+@model ERP.Identity.Models.ViewModels.Sales.SaleOrderViewModel
+@{
+    ViewData["Title"] = "New Sale Order";
+}
+
+<form asp-controller="SaleOrders" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header"><h3 class="card-title">Order Details</h3></div>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="SODate" class="form-label"></label>
+                    <input asp-for="SODate" class="form-control datepicker" autocomplete="off" value="@Model.SODate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="CustomerId" class="form-label"></label>
+                    <select asp-for="CustomerId" class="form-select select2" data-placeholder="Select customer">
+                        <option></option>
+                        @foreach (var c in Model.Customers)
+                        {
+                            <option value="@c.Id">@c.Name (@c.CustomerCode)</option>
+                        }
+                    </select>
+                    <span asp-validation-for="CustomerId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="ExpectedDeliveryDate" class="form-label"></label>
+                    <input asp-for="ExpectedDeliveryDate" class="form-control datepicker" autocomplete="off" value="@Model.ExpectedDeliveryDate?.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="CustomerPONumbers" class="form-label"></label>
+                    <input asp-for="CustomerPONumbers" type="hidden" id="customerPoHidden" />
+                    <select multiple id="customerPoTags" class="form-control"></select>
+                    <div class="form-text">Type a PO number and press Enter — add as many as the customer issued.</div>
+                </div>
+                <div class="col-md-2">
+                    <label asp-for="Remarks" class="form-label"></label>
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Products</h3>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Row</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table align-middle mb-0" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width:28%">Product</th>
+                        <th style="width:12%">Quantity</th>
+                        <th style="width:14%">Unit Price</th>
+                        <th style="width:12%">Sales Tax</th>
+                        <th style="width:14%">Amount (Rs.)</th>
+                        <th style="width:14%">Remarks</th>
+                        <th style="width:6%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="4" class="text-end fw-bold">Grand Total</td>
+                        <td class="fw-bold" id="grandTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="SaleOrders" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products ?? new List<ERP.Identity.Models.ViewModels.Inventory.ProductOption>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })) || [];
+            const SALES_TAX_OPTIONS = [16, 17, 18, 19];
+            let rowIndex = 0;
+
+            function productSelectOptions() {
+                return productOptions.map(function (p) { return `<option value="${p.id}">${p.name} (${p.code || p.sku})</option>`; }).join('');
+            }
+
+            function taxSelectOptions() {
+                return '<option value="">No Tax</option>' + SALES_TAX_OPTIONS.map(function (t) { return `<option value="${t}">${t}%</option>`; }).join('');
+            }
+
+            function addItemRow(prefill) {
+                const tbody = document.querySelector('#itemsTable tbody');
+                const tr = document.createElement('tr');
+                const qty = prefill ? prefill.quantity : '';
+                const price = prefill && prefill.unitPrice ? prefill.unitPrice : '';
+                tr.innerHTML = `
+                    <td>
+                        <select name="Items[${rowIndex}].ProductId" class="form-select select2-row" data-placeholder="Select product">
+                            <option></option>
+                            ${productSelectOptions()}
+                        </select>
+                    </td>
+                    <td>
+                        <input type="number" step="0.001" min="0.001" name="Items[${rowIndex}].Quantity" class="form-control row-qty" value="${qty}" />
+                        <div class="packing-hint small text-muted mt-1"></div>
+                    </td>
+                    <td><input type="number" step="0.01" min="0" name="Items[${rowIndex}].UnitPrice" class="form-control row-price" value="${price}" /></td>
+                    <td>
+                        <select name="Items[${rowIndex}].SalesTaxRate" class="form-select row-tax">
+                            ${taxSelectOptions()}
+                        </select>
+                    </td>
+                    <td class="row-amount fw-semibold">0.00</td>
+                    <td><input type="text" name="Items[${rowIndex}].Remarks" class="form-control" /></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                if (window.jQuery && jQuery.fn.select2) {
+                    const sel = jQuery(tr).find('.select2-row');
+                    sel.select2({ theme: 'bootstrap-5', width: '100%' });
+                    if (prefill) sel.val(prefill.productId).trigger('change');
+
+                    sel.on('select2:select change', function () {
+                        const product = productOptions.find(p => String(p.id) === String(this.value));
+                        if (!product) return;
+
+                        const priceInput = tr.querySelector('.row-price');
+                        if (product.salePrice > 0 && !priceInput.value) {
+                            priceInput.value = product.salePrice;
+                            recalcRow(tr);
+                        }
+
+                        tr.dataset.packingUnit = product.packingUnitName || '';
+                        tr.dataset.packingQty = product.packingQuantity || '';
+                        updatePackingHint(tr);
+                    });
+                }
+                recalcRow(tr);
+                rowIndex++;
+            }
+
+            function updatePackingHint(row) {
+                const hint = row.querySelector('.packing-hint');
+                if (!hint) return;
+                const packingQty = parseFloat(row.dataset.packingQty) || 0;
+                const unitName = row.dataset.packingUnit || '';
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+
+                if (packingQty > 0 && unitName && qty > 0) {
+                    hint.textContent = `≈ ${(qty / packingQty).toFixed(2)} ${unitName}(s)`;
+                } else {
+                    hint.textContent = '';
+                }
+            }
+
+            function recalcRow(row) {
+                const qty = parseFloat(row.querySelector('.row-qty').value) || 0;
+                const price = parseFloat(row.querySelector('.row-price').value) || 0;
+                const taxPct = parseFloat(row.querySelector('.row-tax').value) || 0;
+                const amount = qty * price * (1 + taxPct / 100);
+                row.querySelector('.row-amount').textContent = amount.toFixed(2);
+                recalcGrandTotal();
+            }
+
+            function recalcGrandTotal() {
+                let total = 0;
+                document.querySelectorAll('#itemsTable tbody .row-amount').forEach(function (cell) {
+                    total += parseFloat(cell.textContent) || 0;
+                });
+                document.getElementById('grandTotalCell').textContent = total.toFixed(2);
+            }
+
+            document.getElementById('addRowBtn').addEventListener('click', function () { addItemRow(); });
+
+            document.querySelector('#itemsTable tbody').addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                if (document.querySelectorAll('#itemsTable tbody tr').length <= 1) {
+                    notyf.error('At least one product row is required.');
+                    return;
+                }
+                btn.closest('tr').remove();
+                recalcGrandTotal();
+            });
+
+            document.querySelector('#itemsTable tbody').addEventListener('input', function (e) {
+                if (e.target.classList.contains('row-qty') || e.target.classList.contains('row-price')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+                if (e.target.classList.contains('row-qty')) {
+                    updatePackingHint(e.target.closest('tr'));
+                }
+            });
+            document.querySelector('#itemsTable tbody').addEventListener('change', function (e) {
+                if (e.target.classList.contains('row-tax')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+            });
+
+            initTagsToHiddenField('customerPoHidden', 'customerPoTags', 'Type a PO number and press Enter');
+            setTimeout(function () { addItemRow(); }, 0);
+        });
+    </script>
+}

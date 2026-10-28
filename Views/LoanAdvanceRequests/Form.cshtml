@@ -1,0 +1,118 @@
+@using ERP.Identity.Models.Payroll
+@model ERP.Identity.Models.ViewModels.Payroll.LoanAdvanceRequestFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Loan / Advance Request" : "New Loan / Advance Request";
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-7">
+        <form asp-controller="LoanAdvanceRequests" asp-action="Save" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header">
+                    <h3 class="card-title">
+                        Request Details
+                        @if (isEdit)
+                        {
+                            <span class="badge bg-primary ms-2">@Model.RequestNumber</span>
+                        }
+                    </h3>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-7">
+                            <label asp-for="EmployeeId" class="form-label"></label>
+                            <select asp-for="EmployeeId" id="employeeSelect" class="form-select select2" data-placeholder="Select employee">
+                                <option></option>
+                                @foreach (var e in Model.Employees)
+                                {
+                                    <option value="@e.Id" data-basic="@e.BasicSalary.ToString("0.00")" selected="@(e.Id == Model.EmployeeId)">@e.Name (@e.EmployeeCode)</option>
+                                }
+                            </select>
+                            <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                            <div class="form-text" id="employeeInfo"></div>
+                        </div>
+                        <div class="col-md-5">
+                            <label asp-for="RequestType" class="form-label"></label>
+                            <select asp-for="RequestType" id="requestType" class="form-select"
+                                    asp-items="Html.GetEnumSelectList<LoanAdvanceType>()"></select>
+                            <div class="form-text">An advance is settled from the next salary; a loan is spread over months.</div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Amount" class="form-label"></label>
+                            <input asp-for="Amount" id="amount" type="number" step="0.01" min="0" class="form-control" />
+                            <span asp-validation-for="Amount" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="InstallmentMonths" class="form-label"></label>
+                            <input asp-for="InstallmentMonths" id="months" type="number" min="1" max="120" class="form-control" />
+                            <span asp-validation-for="InstallmentMonths" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Monthly Recovery</label>
+                            <input id="perMonth" class="form-control fw-semibold" readonly disabled value="0.00" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Reason" class="form-label"></label>
+                            <textarea asp-for="Reason" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="LoanAdvanceRequests" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-paper-plane me-1"></i> @(isEdit ? "Update Request" : "Submit Request")
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const ADVANCE = '0'; // LoanAdvanceType.Advance
+
+        function recalc() {
+            const amount = parseFloat(document.getElementById('amount').value) || 0;
+            const isAdvance = String(document.getElementById('requestType').value) === ADVANCE;
+            const monthsInput = document.getElementById('months');
+
+            if (isAdvance) {
+                monthsInput.value = 1;
+                monthsInput.readOnly = true;
+            } else {
+                monthsInput.readOnly = false;
+            }
+
+            const months = Math.max(1, parseInt(monthsInput.value, 10) || 1);
+            document.getElementById('perMonth').value =
+                (amount / months).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        function showEmployee() {
+            const sel = document.getElementById('employeeSelect');
+            const opt = sel.options[sel.selectedIndex];
+            const basic = opt ? parseFloat(opt.getAttribute('data-basic')) : NaN;
+            const info = document.getElementById('employeeInfo');
+
+            info.textContent = isNaN(basic) ? '' :
+                'Basic salary: ' + basic.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        document.getElementById('amount').addEventListener('input', recalc);
+        document.getElementById('months').addEventListener('input', recalc);
+        document.getElementById('requestType').addEventListener('change', recalc);
+        jQuery('#employeeSelect').on('change', showEmployee);
+
+        recalc();
+        showEmployee();
+    </script>
+}

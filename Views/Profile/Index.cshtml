@@ -1,0 +1,149 @@
+@model ERP.Identity.Models.ViewModels.ProfileViewModel
+@{
+    ViewData["Title"] = "My Account";
+    var bloodGroupOptions = ERP.Identity.Models.EmploymentOptions.BloodGroups;
+}
+
+<form asp-controller="Profile" asp-action="Index" method="post" enctype="multipart/form-data" novalidate>
+    @Html.AntiForgeryToken()
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-body">
+                    <partial name="_AvatarUpload" model="@Model.ProfileImagePath" />
+                    <hr />
+                    <ul class="list-unstyled small mb-0">
+                        <li class="mb-2"><i class="fa-solid fa-id-badge text-primary me-2"></i>Role: <strong>@(Model.CurrentRole ?? "—")</strong></li>
+                        <li class="mb-2"><i class="fa-solid fa-briefcase text-primary me-2"></i>Designation: <strong>@(Model.Designation ?? "—")</strong></li>
+                        <li><i class="fa-solid fa-building text-primary me-2"></i>Department: <strong>@(Model.Department ?? "—")</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header">
+                    <h3 class="card-title">Profile Information</h3>
+                </div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="FullName" class="form-label"></label>
+                            <input asp-for="FullName" class="form-control" />
+                            <span asp-validation-for="FullName" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="PhoneNumber" class="form-label"></label>
+                            <input asp-for="PhoneNumber" class="form-control phone-input" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmployeeCode" class="form-label"></label>
+                            <input asp-for="EmployeeCode" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Designation" class="form-label"></label>
+                            <input asp-for="Designation" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Department" class="form-label"></label>
+                            <input asp-for="Department" class="form-control" />
+                        </div>
+
+                        <div class="col-md-3">
+                            <label asp-for="Gender" class="form-label"></label>
+                            <select asp-for="Gender" class="form-select select2" data-placeholder="Select gender">
+                                <option></option>
+                                <option value="Male">Male</option>
+                                <option value="Female">Female</option>
+                                <option value="Other">Other</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="BloodGroup" class="form-label"></label>
+                            <select asp-for="BloodGroup" class="form-select select2" data-placeholder="Select blood group">
+                                <option></option>
+                                @foreach (var bloodGroup in bloodGroupOptions)
+                                {
+                                    <option value="@bloodGroup">@bloodGroup</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="DateOfBirth" class="form-label"></label>
+                            <input asp-for="DateOfBirth" class="form-control datepicker" data-max-today="true" autocomplete="off" value="@Model.DateOfBirth?.ToString("yyyy-MM-dd")" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="JoiningDate" class="form-label"></label>
+                            <input asp-for="JoiningDate" class="form-control datepicker" autocomplete="off" value="@Model.JoiningDate?.ToString("yyyy-MM-dd")" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NationalId" class="form-label"></label>
+                            <input asp-for="NationalId" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Country" class="form-label"></label>
+                            <select asp-for="Country" class="form-select select2" data-placeholder="Select country">
+                                <option></option>
+                                <option>Pakistan</option>
+                                <option>United States</option>
+                                <option>United Kingdom</option>
+                                <option>United Arab Emirates</option>
+                                <option>Saudi Arabia</option>
+                                <option>Canada</option>
+                                <option>Australia</option>
+                                <option>India</option>
+                                <option>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="City" class="form-label"></label>
+                            <input asp-for="City" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="EmergencyContactName" class="form-label"></label>
+                            <input asp-for="EmergencyContactName" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EmergencyContactPhone" class="form-label"></label>
+                            <input asp-for="EmergencyContactPhone" class="form-control phone-input" />
+                        </div>
+
+                        <div class="col-12">
+                            <label asp-for="Bio" class="form-label"></label>
+                            <textarea asp-for="Bio" class="form-control" rows="3"></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="Profile" asp-action="ChangePassword" class="btn btn-outline-secondary">
+                        <i class="fa-solid fa-key me-1"></i> Change Password
+                    </a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> Save Changes
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}

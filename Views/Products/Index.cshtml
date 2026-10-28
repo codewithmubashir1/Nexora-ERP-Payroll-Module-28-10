@@ -1,0 +1,191 @@
+@{
+    ViewData["Title"] = "Products";
+    var categories = (List<ERP.Identity.Models.ViewModels.Inventory.ProductCategoryOption>)ViewBag.Categories;
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 products-toolbar">
+            <div class="d-flex flex-wrap gap-2">
+                <a asp-controller="Products" asp-action="Create" class="btn btn-primary btn-sm">
+                    <i class="fa-solid fa-plus me-1"></i> New Product
+                </a>
+
+                <div class="btn-group import-dropdown">
+                    <button type="button" class="btn btn-outline-primary btn-sm dropdown-toggle" data-bs-toggle="dropdown">
+                        <i class="fa-solid fa-file-import me-1"></i> Import
+                    </button>
+                    <ul class="dropdown-menu">
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#importProductModal"><i class="fa-solid fa-box me-2"></i>Import Product</a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#importOpeningStockModal"><i class="fa-solid fa-warehouse me-2"></i>Import Opening Stock</a></li>
+                        <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#importCustomerNamesModal"><i class="fa-solid fa-users me-2"></i>Import Customer-wise Product Name</a></li>
+                    </ul>
+                </div>
+
+                <button type="button" id="duplicateFilterBtn" class="btn btn-outline-warning btn-sm btn-toggle-duplicates" title="Show only products sharing the same product code">
+                    <i class="fa-solid fa-clone me-1"></i> Duplicate Code Filter
+                </button>
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+                <select id="categoryFilter" class="form-select form-select-sm select2" data-placeholder="All Categories">
+                    <option></option>
+                    @foreach (var c in categories)
+                    {
+                        <option value="@c.Name">@c.Name</option>
+                    }
+                </select>
+                <select id="statusFilter" class="form-select form-select-sm select2" data-placeholder="All Statuses">
+                    <option></option>
+                    <option value="Active">Active</option>
+                    <option value="Inactive">Inactive</option>
+                </select>
+                <select id="stockFilter" class="form-select form-select-sm select2" data-placeholder="All Stock Levels">
+                    <option></option>
+                    <option value="Normal">Normal</option>
+                    <option value="Low">Low Stock</option>
+                    <option value="Out">Out of Stock</option>
+                </select>
+                <button type="button" id="clearFiltersBtn" class="btn btn-outline-secondary btn-sm" title="Clear filters">
+                    <i class="fa-solid fa-filter-circle-xmark"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+    <div class="card-body">
+        <table id="productsTable" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th></th>
+                    <th>SKU</th>
+                    <th>Code</th>
+                    <th>HS Code</th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Unit</th>
+                    <th>Cost</th>
+                    <th>Sale</th>
+                    <th>Stock</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+<partial name="_ImportModal" model='new ERP.Identity.Models.ViewModels.ImportModalViewModel {
+    Id = "importProductModal", Title = "Import Products",
+    ActionUrl = Url.Action("Import", "Products"),
+    TemplateUrl = Url.Action("ProductTemplate", "Products"),
+    Description = "Create or update products in bulk. Matches existing products by Product Code; unmatched rows create new products with an auto-generated SKU. Category, Unit and Location values must match existing names exactly."
+}' />
+
+<partial name="_ImportModal" model='new ERP.Identity.Models.ViewModels.ImportModalViewModel {
+    Id = "importOpeningStockModal", Title = "Import Opening Stock",
+    ActionUrl = Url.Action("ImportOpeningStock", "Products"),
+    TemplateUrl = Url.Action("OpeningStockTemplate", "Products"),
+    Description = "Post opening/bulk stock quantities for existing products at a given location. Each row adds a new stock ledger entry."
+}' />
+
+<partial name="_ImportModal" model='new ERP.Identity.Models.ViewModels.ImportModalViewModel {
+    Id = "importCustomerNamesModal", Title = "Import Customer-wise Product Names",
+    ActionUrl = Url.Action("ImportCustomerProductNames", "Products"),
+    TemplateUrl = Url.Action("CustomerProductNamesTemplate", "Products"),
+    Description = "Map how each customer refers to your products (their own name/code for the same item). Matches products by SKU or Product Code."
+}' />
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        let showDuplicatesOnly = false;
+
+        jQuery(function () {
+            const table = jQuery('#productsTable').DataTable({
+                ajax: { url: '@Url.Action("GetAll", "Products")', dataSrc: 'data' },
+                columns: [
+                    {
+                        data: 'productImagePath', orderable: false,
+                        render: d => `<img src="${d || '/images/default-avatar.svg'}" class="table-avatar" />`
+                    },
+                    { data: 'sku' },
+                    { data: 'productCode', render: d => d || '—' },
+                    { data: 'hsCode', render: d => d || '—' },
+                    { data: 'name' },
+                    { data: 'categoryName' },
+                    { data: 'unitShortName' },
+                    { data: 'costPrice', render: d => Number(d).toFixed(2) },
+                    { data: 'salePrice', render: d => Number(d).toFixed(2) },
+                    {
+                        data: null,
+                        render: function (row) {
+                            const cls = row.stockStatus === 'Out' ? 'bg-danger' : (row.stockStatus === 'Low' ? 'bg-warning' : 'bg-success');
+                            return `<span class="badge ${cls}">${row.currentStock}</span>`;
+                        }
+                    },
+                    {
+                        data: 'isActive',
+                        render: d => d ? '<span class="badge bg-success">Active</span>' : '<span class="badge bg-secondary">Inactive</span>'
+                    },
+                    {
+                        data: 'id', orderable: false,
+                        render: (id, type, row) => `
+                            <div class="text-end">
+                                ${row.isDuplicate ? '<span class="badge bg-warning me-1" title="Duplicate product code"><i class="fa-solid fa-triangle-exclamation"></i></span>' : ''}
+                                <a href="/Inventory/Products/Edit/${id}" class="btn btn-sm btn-outline-primary" title="Edit"><i class="fa-solid fa-pen"></i></a>
+                                <a href="/Inventory/Products/PriceHistory/${id}" class="btn btn-sm btn-outline-info" title="Price History"><i class="fa-solid fa-clock-rotate-left"></i></a>
+                                <button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Delete"><i class="fa-solid fa-trash"></i></button>
+                            </div>`
+                    }
+                ]
+            });
+
+            jQuery('#productsTable tbody').on('click', '.btn-delete', function () {
+                const id = jQuery(this).data('id');
+                confirmDelete('@Url.Action("Delete", "Products")', token, function () { table.ajax.reload(); }, { id: id });
+            });
+
+            // ---- All filters (category, status, stock level, duplicates) read the
+            // raw row data directly rather than the rendered HTML, since several
+            // columns render badges/images and aren't safe to regex-match on. ----
+            jQuery.fn.dataTable.ext.search.push(function (settings, searchData, index, rowData) {
+                if (settings.nTable.id !== 'productsTable') return true;
+
+                const categoryVal = jQuery('#categoryFilter').val();
+                if (categoryVal && rowData.categoryName !== categoryVal) return false;
+
+                const statusVal = jQuery('#statusFilter').val();
+                if (statusVal) {
+                    const wantActive = statusVal === 'Active';
+                    if (rowData.isActive !== wantActive) return false;
+                }
+
+                const stockVal = jQuery('#stockFilter').val();
+                if (stockVal && rowData.stockStatus !== stockVal) return false;
+
+                if (showDuplicatesOnly && !rowData.isDuplicate) return false;
+
+                return true;
+            });
+
+            jQuery('#categoryFilter, #statusFilter, #stockFilter').on('change', function () { table.draw(); });
+
+            jQuery('#duplicateFilterBtn').on('click', function () {
+                showDuplicatesOnly = !showDuplicatesOnly;
+                jQuery(this).toggleClass('active', showDuplicatesOnly);
+                table.draw();
+            });
+
+            jQuery('#clearFiltersBtn').on('click', function () {
+                jQuery('#categoryFilter, #statusFilter, #stockFilter').val(null).trigger('change.select2').trigger('change');
+                showDuplicatesOnly = false;
+                jQuery('#duplicateFilterBtn').removeClass('active');
+                table.search('').columns().search('').draw();
+            });
+
+            document.addEventListener('erp:import-success', function () { table.ajax.reload(); });
+        });
+    </script>
+}

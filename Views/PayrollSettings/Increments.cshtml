@@ -1,0 +1,168 @@
+@model ERP.Identity.Models.ViewModels.Payroll.SalaryIncrementFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Salary Increment" : "Salary Increments";
+}
+
+<div class="row">
+    <div class="col-lg-4">
+        <form asp-controller="PayrollSettings" asp-action="SaveIncrement" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <input type="hidden" asp-for="Id" />
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">@(isEdit ? "Edit Increment" : "Record an Increment")</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="EmployeeId" class="form-label"></label>
+                        <select asp-for="EmployeeId" id="employeeSelect" class="form-select select2" data-placeholder="Select employee">
+                            <option></option>
+                            @foreach (var e in Model.Employees)
+                            {
+                                <option value="@e.Id" data-basic="@e.BasicSalary.ToString("0.00")" selected="@(e.Id == Model.EmployeeId)">@e.Name (@e.EmployeeCode)</option>
+                            }
+                        </select>
+                        <span asp-validation-for="EmployeeId" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label">Current Basic Salary</label>
+                        <input id="currentBasic" class="form-control" readonly disabled value="—" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="NewBasicSalary" class="form-label"></label>
+                        <input asp-for="NewBasicSalary" id="newBasic" type="number" step="0.01" min="0" class="form-control" />
+                        <span asp-validation-for="NewBasicSalary" class="text-danger small"></span>
+                        <div class="form-text" id="changeHint"></div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="EffectiveDate" class="form-label"></label>
+                        <input asp-for="EffectiveDate" type="date" class="form-control" />
+                        <div class="form-text">Dated today or earlier applies immediately; a future date is recorded only.</div>
+                    </div>
+
+                    <div class="mb-0">
+                        <label asp-for="Reason" class="form-label"></label>
+                        <textarea asp-for="Reason" class="form-control" rows="3" placeholder="Annual review, promotion, …"></textarea>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    @if (isEdit)
+                    {
+                        <a asp-controller="PayrollSettings" asp-action="Increments" class="btn btn-outline-secondary">Cancel</a>
+                    }
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-arrow-trend-up me-1"></i> @(isEdit ? "Update Increment" : "Apply Increment")</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-8">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title">Increment History</h3></div>
+            <div class="card-body">
+                <table id="incrementsTable" class="table table-sm table-striped table-hover align-middle w-100 increments-table">
+                    <thead>
+                        <tr>
+                            <th>Employee</th>
+                            <th>Effective</th>
+                            <th class="text-end">From</th>
+                            <th class="text-end">To</th>
+                            <th class="text-end">Change</th>
+                            <th class="text-end">%</th>
+                            <th>Reason</th>
+                            <th class="text-end"></th>
+                        </tr>
+                    </thead>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+        const money = d => Number(d).toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const editingIncrement = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(isEdit));
+        const recordedBaseSalary = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.OldBasicSalary));
+
+        function currentBasic() {
+            if (editingIncrement) return recordedBaseSalary;
+            const sel = document.getElementById('employeeSelect');
+            const opt = sel.options[sel.selectedIndex];
+            return opt ? parseFloat(opt.getAttribute('data-basic')) : NaN;
+        }
+
+        function refresh() {
+            const basic = currentBasic();
+            const next = parseFloat(document.getElementById('newBasic').value);
+
+            document.getElementById('currentBasic').value = isNaN(basic) ? '—' : money(basic);
+
+            const hint = document.getElementById('changeHint');
+            if (isNaN(basic) || isNaN(next) || basic <= 0) { hint.textContent = ''; return; }
+
+            const diff = next - basic;
+            const pct = (diff / basic) * 100;
+            hint.textContent = `${diff >= 0 ? 'Increase' : 'Decrease'} of ${money(Math.abs(diff))} (${pct.toFixed(2)}%)`;
+        }
+
+        jQuery('#employeeSelect').on('change', refresh);
+        document.getElementById('newBasic').addEventListener('input', refresh);
+        refresh();
+
+        jQuery(function () {
+            const table = jQuery('#incrementsTable').DataTable({
+                ajax: { url: '@Url.Action("GetIncrements", "PayrollSettings")', dataSrc: 'data' },
+                order: [[1, 'desc']],
+                responsive: true,
+                autoWidth: false,
+                lengthChange: false,
+                buttons: [],
+                dom: "<'row mb-2'<'col-12'f>><'row'<'col-12't>><'row mt-2 align-items-center'<'col-md-5'i><'col-md-7'p>>",
+                columns: [
+                    {
+                        data: null,
+                        render: row => `<div>${row.employeeName}</div><small class="text-muted">${row.employeeCode}</small>`
+                    },
+                    {
+                        data: 'effectiveDate',
+                        render: d => new Date(d).toLocaleDateString('en-PK', { day: '2-digit', month: 'short', year: 'numeric' })
+                    },
+                    { data: 'oldBasicSalary', className: 'text-end', render: money },
+                    { data: 'newBasicSalary', className: 'text-end', render: money },
+                    {
+                        data: 'increaseAmount', className: 'text-end',
+                        render: d => `<span class="${d >= 0 ? 'text-success' : 'text-danger'}">${d >= 0 ? '+' : ''}${money(d)}</span>`
+                    },
+                    { data: 'increasePercent', className: 'text-end', render: d => Number(d).toFixed(2) + '%' },
+                    { data: 'reason', render: d => d || '—' },
+                    {
+                        data: 'id', orderable: false,
+                        render: id => `<div class="d-flex justify-content-end gap-1 text-nowrap"><a class="btn btn-sm btn-outline-primary" href="@Url.Action("Increments", "PayrollSettings")?id=${id}" title="Edit increment"><i class="fa-solid fa-pen"></i></a><button type="button" class="btn btn-sm btn-outline-danger btn-delete" data-id="${id}" title="Remove record"><i class="fa-solid fa-trash"></i></button></div>`
+                    }
+                ]
+            });
+
+            jQuery('#incrementsTable tbody').on('click', '.btn-delete', function () {
+                confirmDelete('@Url.Action("DeleteIncrement", "PayrollSettings")', token,
+                    () => table.ajax.reload(null, false), { id: jQuery(this).data('id') });
+            });
+        });
+    </script>
+}
+
+@section Styles {
+    <style>
+        .increments-table th { background: var(--bs-tertiary-bg); color: var(--bs-dark); font-size: .78rem; white-space: nowrap; }
+        .increments-table td { font-size: .82rem; vertical-align: middle; }
+        .increments-table .dt-search input { width: min(260px, 100%); }
+    </style>
+}

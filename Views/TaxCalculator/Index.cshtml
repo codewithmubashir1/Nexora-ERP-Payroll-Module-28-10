@@ -1,0 +1,176 @@
+@model ERP.Identity.Models.ViewModels.Payroll.TaxCalculatorViewModel
+@{
+    ViewData["Title"] = "Tax Calculator";
+}
+
+<div class="row">
+    <div class="col-lg-5">
+        <form asp-controller="TaxCalculator" asp-action="Calculate" method="post" novalidate>
+            @Html.AntiForgeryToken()
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Income</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="mb-3">
+                        <label asp-for="EmployeeId" class="form-label"></label>
+                        <select asp-for="EmployeeId" id="employeeSelect" class="form-select select2" data-placeholder="Or enter a salary manually">
+                            <option value="">Enter a salary manually</option>
+                            @foreach (var e in Model.Employees)
+                            {
+                                <option value="@e.Id" selected="@(e.Id == Model.EmployeeId)">@e.Name (@e.EmployeeCode)</option>
+                            }
+                        </select>
+                        <div class="form-text">Picking an employee fills in their gross monthly salary.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="MonthlySalary" class="form-label"></label>
+                        <input asp-for="MonthlySalary" id="monthlySalary" type="number" step="0.01" min="0" class="form-control" />
+                        <span asp-validation-for="MonthlySalary" class="text-danger small"></span>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="OtherAnnualIncome" class="form-label"></label>
+                        <input asp-for="OtherAnnualIncome" type="number" step="0.01" min="0" class="form-control" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="AnnualDeductions" class="form-label"></label>
+                        <input asp-for="AnnualDeductions" type="number" step="0.01" min="0" class="form-control" />
+                    </div>
+
+                    <div class="form-check form-switch">
+                        <input asp-for="ApplyStatutory" class="form-check-input" role="switch" />
+                        <label asp-for="ApplyStatutory" class="form-check-label"></label>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-calculator me-1"></i> Calculate</button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-lg-7">
+        @if (!Model.HasResult)
+        {
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-body text-center py-5">
+                    <i class="fa-solid fa-calculator fa-3x text-muted mb-3"></i>
+                    <h5>Work out income tax from your configured slabs</h5>
+                    <p class="text-muted mb-0">
+                        Enter a salary or pick an employee. Slabs and statutory deductions are maintained
+                        under Payroll Settings &rarr; Statutory &amp; Tax.
+                    </p>
+                </div>
+            </div>
+        }
+        else
+        {
+            <div class="row">
+                <div class="col-md-4 col-6">
+                    <div class="small-box bg-info">
+                        <div class="inner"><h3 style="font-size:1.4rem;">@Model.TaxableIncome.ToString("N0")</h3><p>Annual Taxable</p></div>
+                        <div class="icon"><i class="fa-solid fa-coins"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="small-box bg-warning">
+                        <div class="inner"><h3 style="font-size:1.4rem;">@Model.AnnualTax.ToString("N0")</h3><p>Annual Tax</p></div>
+                        <div class="icon"><i class="fa-solid fa-landmark"></i></div>
+                    </div>
+                </div>
+                <div class="col-md-4 col-6">
+                    <div class="small-box bg-success">
+                        <div class="inner"><h3 style="font-size:1.4rem;">@Model.MonthlyTakeHome.ToString("N0")</h3><p>Monthly Take-home</p></div>
+                        <div class="icon"><i class="fa-solid fa-wallet"></i></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Summary</h3></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <tr><td>Annual gross income</td><td class="text-end">@Model.AnnualGross.ToString("N2")</td></tr>
+                        <tr><td>Less deductible allowances / credits</td><td class="text-end">@Model.AnnualDeductions.ToString("N2")</td></tr>
+                        <tr class="table-light"><td>Annual taxable income</td><td class="text-end fw-semibold">@Model.TaxableIncome.ToString("N2")</td></tr>
+                        <tr><td>Annual income tax</td><td class="text-end">@Model.AnnualTax.ToString("N2")</td></tr>
+                        <tr><td>Monthly income tax</td><td class="text-end fw-semibold">@Model.MonthlyTax.ToString("N2")</td></tr>
+                        <tr><td>Effective tax rate</td><td class="text-end">@Model.EffectiveRate.ToString("0.00")%</td></tr>
+                        @if (Model.StatutoryMonthly > 0)
+                        {
+                            <tr><td>Monthly statutory deductions</td><td class="text-end">@Model.StatutoryMonthly.ToString("N2")</td></tr>
+                        }
+                        <tr class="table-light"><td class="fw-semibold">Monthly take-home</td><td class="text-end fw-bold">@Model.MonthlyTakeHome.ToString("N2")</td></tr>
+                    </table>
+                </div>
+            </div>
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Slab Working</h3></div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr><th>Annual Range</th><th class="text-end">Rate %</th><th class="text-end">Taxable Here</th><th class="text-end">Tax</th></tr>
+                        </thead>
+                        <tbody>
+                            @foreach (var row in Model.Breakdown)
+                            {
+                                <tr class="@(row.IsApplicableSlab ? "table-primary" : "")">
+                                    <td>@row.Range @(row.IsApplicableSlab ? Html.Raw("<span class='badge bg-primary ms-1'>applies</span>") : Html.Raw(""))</td>
+                                    <td class="text-end">@row.RatePercent.ToString("0.##")</td>
+                                    <td class="text-end">@row.TaxableInThisSlab.ToString("N2")</td>
+                                    <td class="text-end">@row.TaxOnThisSlab.ToString("N2")</td>
+                                </tr>
+                            }
+                        </tbody>
+                    </table>
+                </div>
+                <div class="card-footer small text-muted">
+                    Tax on the applicable slab is <code>fixed amount + (taxable income &minus; slab floor) &times; rate</code>.
+                </div>
+            </div>
+
+            @if (Model.AppliedStatutory.Count > 0)
+            {
+                <div class="card animate__animated animate__fadeIn">
+                    <div class="card-header"><h3 class="card-title">Statutory Deductions Applied</h3></div>
+                    <div class="card-body p-0">
+                        <table class="table table-sm mb-0">
+                            <thead><tr><th>Name</th><th class="text-end">Rate %</th><th class="text-end">Wage Ceiling</th></tr></thead>
+                            <tbody>
+                                @foreach (var s in Model.AppliedStatutory)
+                                {
+                                    <tr>
+                                        <td>@s.Name</td>
+                                        <td class="text-end">@s.RatePercent.ToString("0.##")</td>
+                                        <td class="text-end">@(s.MaxApplicableSalary?.ToString("N2") ?? "No ceiling")</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            }
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        jQuery('#employeeSelect').on('change', function () {
+            const id = this.value;
+            if (!id) return;
+
+            fetch('/Payroll/TaxCalculator/GetEmployeeSalary/' + id)
+                .then(r => r.json())
+                .then(function (data) {
+                    document.getElementById('monthlySalary').value = Number(data.monthlySalary).toFixed(2);
+                })
+                .catch(() => notyf.error('Could not load that employee.'));
+        });
+    </script>
+}

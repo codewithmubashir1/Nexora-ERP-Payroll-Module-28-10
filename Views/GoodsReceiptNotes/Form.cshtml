@@ -1,0 +1,271 @@
+@model ERP.Identity.Models.ViewModels.Purchase.GoodsReceiptNoteViewModel
+@{
+    ViewData["Title"] = "New Goods Receipt Note";
+}
+
+<form asp-controller="GoodsReceiptNotes" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header"><h3 class="card-title">GRN Details</h3></div>
+        <div class="card-body">
+            <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label asp-for="GRNDate" class="form-label"></label>
+                    <input asp-for="GRNDate" class="form-control datepicker" autocomplete="off" value="@Model.GRNDate.ToString("yyyy-MM-dd")" />
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="PurchaseOrderId" class="form-label"></label>
+                    <select asp-for="PurchaseOrderId" id="poSelect" class="form-select select2" data-placeholder="Select a PO to auto-fill">
+                        <option></option>
+                        @foreach (var p in Model.PurchaseOrders) { <option value="@p.Id">@p.PONumber</option> }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="InwardGatePassId" class="form-label"></label>
+                    <select asp-for="InwardGatePassId" id="gatePassSelect" class="form-select select2" data-placeholder="Or select a gate pass to auto-fill">
+                        <option></option>
+                        @foreach (var g in Model.GatePasses) { <option value="@g.Id">@g.GatePassNo</option> }
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label asp-for="VendorId" class="form-label"></label>
+                    <select asp-for="VendorId" id="vendorSelect" class="form-select select2" data-placeholder="Select vendor">
+                        <option></option>
+                        @foreach (var v in Model.Vendors) { <option value="@v.Id">@v.Name (@v.VendorCode)</option> }
+                    </select>
+                    <span asp-validation-for="VendorId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-4">
+                    <label asp-for="LocationId" class="form-label"></label>
+                    <select asp-for="LocationId" class="form-select select2" data-placeholder="Receiving location">
+                        <option></option>
+                        @foreach (var l in Model.Locations) { <option value="@l.Id">@l.Name</option> }
+                    </select>
+                    <span asp-validation-for="LocationId" class="text-danger small"></span>
+                </div>
+                <div class="col-md-8">
+                    <label asp-for="Remarks" class="form-label"></label>
+                    <input asp-for="Remarks" class="form-control" />
+                </div>
+            </div>
+            <div class="form-text mt-2">Selecting a PO or Gate Pass fills the vendor and product lines below automatically — quantities and costs stay fully editable afterward.</div>
+        </div>
+    </div>
+
+    <div class="card animate__animated animate__fadeIn">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h3 class="card-title">Inspection — Accepted / Rejected Quantities</h3>
+            <button type="button" id="addRowBtn" class="btn btn-outline-primary btn-sm"><i class="fa-solid fa-plus me-1"></i> Add Row</button>
+        </div>
+        <div class="card-body p-0">
+            <table class="table align-middle mb-0" id="itemsTable">
+                <thead>
+                    <tr>
+                        <th style="width:22%">Product</th>
+                        <th style="width:10%">Declared</th>
+                        <th style="width:10%">Accepted</th>
+                        <th style="width:10%">Rejected</th>
+                        <th style="width:11%">Unit Cost</th>
+                        <th style="width:12%">Amount (Rs.)</th>
+                        <th style="width:17%">Remarks</th>
+                        <th style="width:8%"></th>
+                    </tr>
+                </thead>
+                <tbody></tbody>
+                <tfoot>
+                    <tr>
+                        <td colspan="5" class="text-end fw-bold">Grand Total</td>
+                        <td class="fw-bold" id="grandTotalCell">0.00</td>
+                        <td colspan="2"></td>
+                    </tr>
+                </tfoot>
+            </table>
+        </div>
+        <div class="card-footer text-end">
+            <a asp-controller="GoodsReceiptNotes" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+            <button type="submit" class="btn btn-primary"><i class="fa-solid fa-check me-1"></i> Submit for Approval</button>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const productOptions = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(Model.Products ?? new List<ERP.Identity.Models.ViewModels.Inventory.ProductOption>(), new System.Text.Json.JsonSerializerOptions { PropertyNamingPolicy = System.Text.Json.JsonNamingPolicy.CamelCase })) || [];
+            let rowIndex = 0;
+
+            function productSelectOptions() {
+                return productOptions.map(function (p) { return `<option value="${p.id}">${p.name} (${p.code || p.sku})</option>`; }).join('');
+            }
+
+            // prefill: { productId, declaredQuantity, unitCost }
+            function addItemRow(prefill) {
+                const tbody = document.querySelector('#itemsTable tbody');
+                const tr = document.createElement('tr');
+                const declared = prefill ? prefill.declaredQuantity : '';
+                const unitCost = prefill && prefill.unitCost ? prefill.unitCost : '';
+                tr.innerHTML = `
+                    <td>
+                        <select name="Items[${rowIndex}].ProductId" class="form-select select2-row" data-placeholder="Select product">
+                            <option></option>
+                            ${productSelectOptions()}
+                        </select>
+                    </td>
+                    <td><input type="number" step="0.001" min="0" name="Items[${rowIndex}].DeclaredQuantity" class="form-control declared-qty" value="${declared}" /></td>
+                    <td><input type="number" step="0.001" min="0" name="Items[${rowIndex}].AcceptedQuantity" class="form-control accepted-qty" value="${declared}" />
+                        <div class="packing-hint small text-muted mt-1"></div>
+                    </td>
+                    <td><input type="number" step="0.001" min="0" name="Items[${rowIndex}].RejectedQuantity" class="form-control rejected-qty bg-light" value="0" readonly /></td>
+                    <td><input type="number" step="0.01" min="0" name="Items[${rowIndex}].UnitCost" class="form-control unit-cost" value="${unitCost}" /></td>
+                    <td class="row-amount fw-semibold">0.00</td>
+                    <td><input type="text" name="Items[${rowIndex}].Remarks" class="form-control" /></td>
+                    <td class="text-end"><button type="button" class="btn btn-sm btn-outline-danger btn-remove-row"><i class="fa-solid fa-trash"></i></button></td>
+                `;
+                tbody.appendChild(tr);
+                if (window.jQuery && jQuery.fn.select2) {
+                    const sel = jQuery(tr).find('.select2-row');
+                    sel.select2({ theme: 'bootstrap-5', width: '100%' });
+                    if (prefill) sel.val(prefill.productId).trigger('change');
+
+                    sel.on('select2:select change', function () {
+                        const product = productOptions.find(p => String(p.id) === String(this.value));
+                        if (!product) return;
+
+                        const costInput = tr.querySelector('.unit-cost');
+                        if (product.costPrice > 0 && !costInput.value) {
+                            costInput.value = product.costPrice;
+                            recalcRow(tr);
+                        }
+
+                        tr.dataset.packingUnit = product.packingUnitName || '';
+                        tr.dataset.packingQty = product.packingQuantity || '';
+                        updatePackingHint(tr);
+                    });
+                }
+                rowIndex++;
+            }
+
+            function updatePackingHint(row) {
+                const hint = row.querySelector('.packing-hint');
+                if (!hint) return;
+                const packingQty = parseFloat(row.dataset.packingQty) || 0;
+                const unitName = row.dataset.packingUnit || '';
+                const qty = parseFloat(row.querySelector('.accepted-qty').value) || 0;
+
+                if (packingQty > 0 && unitName && qty > 0) {
+                    hint.textContent = `≈ ${(qty / packingQty).toFixed(2)} ${unitName}(s)`;
+                } else {
+                    hint.textContent = '';
+                }
+            }
+
+            function clearRows() {
+                document.querySelector('#itemsTable tbody').innerHTML = '';
+                rowIndex = 0;
+                recalcGrandTotal();
+            }
+
+            // Live calculation: Rejected = max(0, Declared - Accepted), recalculated as
+            // the inspector types either number. Rejected itself is read-only/derived.
+            // Amount = Accepted x UnitCost, and the Grand Total footer is the live
+            // sum of every row's Amount.
+            function recalcRow(row) {
+                const declared = parseFloat(row.querySelector('.declared-qty').value) || 0;
+                const accepted = parseFloat(row.querySelector('.accepted-qty').value) || 0;
+                const unitCost = parseFloat(row.querySelector('.unit-cost').value) || 0;
+                const rejectedField = row.querySelector('.rejected-qty');
+                const rejected = Math.max(0, declared - accepted);
+                rejectedField.value = rejected.toFixed(3).replace(/\.?0+$/, '') || '0';
+
+                row.querySelector('.row-amount').textContent = (accepted * unitCost).toFixed(2);
+
+                row.classList.toggle('table-warning', accepted > declared && declared > 0);
+                recalcGrandTotal();
+            }
+
+            function recalcGrandTotal() {
+                let total = 0;
+                document.querySelectorAll('#itemsTable tbody .row-amount').forEach(function (cell) {
+                    total += parseFloat(cell.textContent) || 0;
+                });
+                document.getElementById('grandTotalCell').textContent = total.toFixed(2);
+            }
+
+            document.getElementById('addRowBtn').addEventListener('click', function () { addItemRow(); });
+
+            document.querySelector('#itemsTable tbody').addEventListener('click', function (e) {
+                const btn = e.target.closest('.btn-remove-row');
+                if (!btn) return;
+                if (document.querySelectorAll('#itemsTable tbody tr').length <= 1) {
+                    notyf.error('At least one product row is required.');
+                    return;
+                }
+                btn.closest('tr').remove();
+                recalcGrandTotal();
+            });
+
+            document.querySelector('#itemsTable tbody').addEventListener('input', function (e) {
+                if (e.target.classList.contains('declared-qty') || e.target.classList.contains('accepted-qty') || e.target.classList.contains('unit-cost')) {
+                    recalcRow(e.target.closest('tr'));
+                }
+                if (e.target.classList.contains('accepted-qty')) {
+                    updatePackingHint(e.target.closest('tr'));
+                }
+            });
+
+            function populateFromPO(poId) {
+                return fetch(`/Purchase/Orders/GetDetails/${poId}`)
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        jQuery('#vendorSelect').val(data.vendorId).trigger('change');
+                        clearRows();
+                        if (data.items && data.items.length) {
+                            data.items.forEach(item => {
+                                addItemRow({ productId: item.productId, declaredQuantity: item.quantity, unitCost: item.unitPrice });
+                                recalcRow(document.querySelector('#itemsTable tbody tr:last-child'));
+                            });
+                        } else {
+                            addItemRow();
+                        }
+                    });
+            }
+
+            jQuery('#poSelect').on('change', function () {
+                const poId = this.value;
+                if (!poId) return;
+                populateFromPO(poId)
+                    .then(() => notyf.success('GRN pre-filled from ' + jQuery('#poSelect option:selected').text()))
+                    .catch(() => notyf.error('Could not load purchase order details.'));
+            });
+
+            jQuery('#gatePassSelect').on('change', function () {
+                const gatePassId = this.value;
+                if (!gatePassId) return;
+
+                fetch(`/Purchase/GatePasses/GetDetails/${gatePassId}`)
+                    .then(r => r.ok ? r.json() : Promise.reject())
+                    .then(data => {
+                        jQuery('#vendorSelect').val(data.vendorId).trigger('change');
+                        if (data.purchaseOrderId) jQuery('#poSelect').val(data.purchaseOrderId).trigger('change.select2');
+
+                        clearRows();
+                        if (data.items && data.items.length) {
+                            data.items.forEach(item => {
+                                addItemRow({ productId: item.productId, declaredQuantity: item.declaredQuantity, unitCost: item.unitCost || '' });
+                                recalcRow(document.querySelector('#itemsTable tbody tr:last-child'));
+                            });
+                        } else {
+                            addItemRow();
+                        }
+                        notyf.success('GRN pre-filled from ' + jQuery('#gatePassSelect option:selected').text());
+                    })
+                    .catch(() => notyf.error('Could not load gate pass details.'));
+            });
+
+            setTimeout(function () { addItemRow(); }, 0);
+        });
+    </script>
+}

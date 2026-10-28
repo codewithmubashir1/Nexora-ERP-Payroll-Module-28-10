@@ -1,0 +1,379 @@
+@using Microsoft.AspNetCore.Identity
+@using ERP.Identity.Models
+@inject SignInManager<ApplicationUser> SignInManager
+@inject UserManager<ApplicationUser> UserManager
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - ERP System</title>
+    <link rel="icon" type="image/svg+xml" href="~/favicon.svg" asp-append-version="true">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&family=Ubuntu:wght@400;500;700&display=swap" rel="stylesheet">
+
+    <!-- Bootstrap / Icons / Animations / AdminLTE -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.7.2/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/animate.css@4.1.1/animate.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/admin-lte@4/dist/css/adminlte.min.css">
+
+    <!-- Notyf (toast notifications) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.css">
+
+    <!-- DataTables (core + Responsive + Buttons) -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/2.1.8/css/dataTables.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/responsive/3.0.3/css/responsive.bootstrap5.min.css">
+    <link rel="stylesheet" href="https://cdn.datatables.net/buttons/3.1.2/css/buttons.bootstrap5.min.css">
+
+    <!-- Select2 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css">
+
+    <!-- intl-tel-input -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/css/intlTelInput.css">
+
+    <!-- Flatpickr (custom date picker) -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/themes/material_blue.css">
+
+    <link rel="stylesheet" href="~/css/styles.css" asp-append-version="true">
+    <link rel="stylesheet" href="~/css/notyf-flatpickr.css" asp-append-version="true">
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+@{
+    var currentUser = await UserManager.GetUserAsync(User);
+    var currentAvatar = string.IsNullOrEmpty(currentUser?.ProfileImagePath) ? "/images/default-avatar.svg" : currentUser!.ProfileImagePath;
+    var currentController = ViewContext.RouteData.Values["controller"]?.ToString();
+    var currentAction = ViewContext.RouteData.Values["action"]?.ToString();
+    var isPayrollSettingsPage = currentController == "PayrollSettings" && currentAction == "Index";
+    var payrollSettingsSection = Context.Request.Query["tab"].ToString();
+    if (string.IsNullOrWhiteSpace(payrollSettingsSection)) payrollSettingsSection = "reimbursement";
+}
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+    <!-- ===== NAVBAR ===== -->
+    <nav class="app-header navbar navbar-expand bg-body">
+        <div class="container-fluid">
+            <ul class="navbar-nav">
+                <li class="nav-item">
+                    <a class="nav-link sidebar-toggle" data-lte-toggle="sidebar" href="#" role="button" aria-label="Toggle sidebar" title="Toggle sidebar">
+                        <i class="fa-solid fa-bars"></i>
+                    </a>
+                </li>
+            </ul>
+
+            <ul class="navbar-nav ms-auto align-items-center">
+                <!-- Low stock alert bell -->
+                <li class="nav-item dropdown hoverable-dropdown">
+                    <a class="nav-link position-relative" href="#" id="alertsDropdown" role="button">
+                        <i class="fa-solid fa-bell"></i>
+                        <span id="alertsBadge" class="badge bg-danger rounded-pill position-absolute d-none" style="top:2px; left:18px; font-size:.6rem;">0</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end animated-dropdown p-0" style="min-width:320px;">
+                        <div class="px-3 py-2 border-bottom d-flex justify-content-between align-items-center">
+                            <strong class="small">Stock Alerts</strong>
+                            <a asp-controller="Inventory" asp-action="Index" class="small">View dashboard</a>
+                        </div>
+                        <div id="alertsList" class="p-2" style="max-height:320px; overflow-y:auto;">
+                            <p class="text-muted small text-center py-3 mb-0">Loading...</p>
+                        </div>
+                    </div>
+                </li>
+
+                <!-- User dropdown -->
+                <li class="nav-item dropdown hoverable-dropdown">
+                    <a class="nav-link d-flex align-items-center" href="#" id="userDropdown" role="button">
+                        <img src="@currentAvatar"
+                             class="rounded-circle me-2" style="width:28px;height:28px;object-fit:cover;" alt="avatar" />
+                        <span class="d-none d-md-inline">@(currentUser?.FullName ?? "Account")</span>
+                    </a>
+                    <div class="dropdown-menu dropdown-menu-end animated-dropdown">
+                        <a class="dropdown-item" asp-controller="Profile" asp-action="Index"><i class="fa-solid fa-user me-2"></i> My Account</a>
+                        <a class="dropdown-item" asp-controller="Profile" asp-action="ChangePassword"><i class="fa-solid fa-key me-2"></i> Change Password</a>
+                        <div class="dropdown-divider"></div>
+                        <a class="dropdown-item text-danger" href="#" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i> Logout</a>
+                    </div>
+                </li>
+            </ul>
+        </div>
+    </nav>
+
+    <!-- ===== SIDEBAR ===== -->
+    <aside class="app-sidebar bg-body-secondary shadow">
+        <div class="sidebar-brand">
+            <a href="@Url.Action("Index", "Dashboard")" class="brand-link">
+                <i class="fa-solid fa-cubes-stacked brand-image opacity-100 fs-4 text-primary ms-2"></i>
+                <span class="brand-text fw-bold ms-2">ERP<span class="text-primary">System</span></span>
+            </a>
+        </div>
+
+        <div class="sidebar-wrapper">
+            <nav class="mt-2">
+                <ul class="nav sidebar-menu flex-column" data-lte-toggle="treeview" role="menu">
+                    <li class="nav-item"><a asp-controller="Dashboard" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gauge-high"></i><p>Dashboard</p></a></li>
+
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fa-solid fa-cart-shopping"></i>
+                            <p>
+                                Sales
+                                <i class="nav-arrow fa-solid fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item"><a asp-controller="Sales" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gauge"></i><p>Overview</p></a></li>
+                            <li class="nav-item"><a asp-controller="SaleOrders" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-lines"></i><p>Sale Order</p></a></li>
+                            <li class="nav-item"><a asp-controller="DeliveryChallans" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-truck"></i><p>Delivery Challan</p></a></li>
+                            <li class="nav-item"><a asp-controller="SalesInvoices" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-invoice-dollar"></i><p>Sales Tax Invoice</p></a></li>
+                            <li class="nav-item"><a asp-controller="SalesInvoicePayments" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-bill-wave"></i><p>Invoice Payment</p></a></li>
+                            <li class="nav-item"><a asp-controller="CreditNotes" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-rotate-left"></i><p>Credit Note</p></a></li>
+                            <li class="nav-item"><a asp-controller="Customers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-users"></i><p>Customers</p></a></li>
+                            <li class="nav-item"><a asp-controller="CustomerCategories" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-tags"></i><p>Customer Categories</p></a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fa-solid fa-truck-ramp-box"></i>
+                            <p>
+                                Purchase
+                                <i class="nav-arrow fa-solid fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item"><a asp-controller="Purchases" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gauge"></i><p>Overview</p></a></li>
+                            <li class="nav-item"><a asp-controller="PurchaseOrders" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-invoice"></i><p>Purchase Order</p></a></li>
+                            <li class="nav-item"><a asp-controller="InwardGatePasses" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-truck-ramp-box"></i><p>Inward Gate Pass</p></a></li>
+                            <li class="nav-item"><a asp-controller="GoodsReceiptNotes" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-boxes-packing"></i><p>Goods Receipt Note</p></a></li>
+                            <li class="nav-item"><a asp-controller="PurchaseInvoices" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-invoice-dollar"></i><p>Purchase Invoice</p></a></li>
+                            <li class="nav-item"><a asp-controller="PurchaseInvoicePayments" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-bill-transfer"></i><p>Invoice Payment</p></a></li>
+                            <li class="nav-item"><a asp-controller="DebitNotes" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-rotate-left"></i><p>Debit Note</p></a></li>
+                            <li class="nav-item"><a asp-controller="Vendors" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-truck-field"></i><p>Vendors</p></a></li>
+                            <li class="nav-item"><a asp-controller="VendorCategories" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-tags"></i><p>Vendor Categories</p></a></li>
+                            <li class="nav-item"><a asp-controller="IssuedCheques" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-check"></i><p>Issued Cheques</p></a></li>
+                            <li class="nav-item"><a asp-controller="VendorAdvances" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-hand-holding-dollar"></i><p>Advances</p></a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fa-solid fa-boxes-stacked"></i>
+                            <p>
+                                Inventory
+                                <i class="nav-arrow fa-solid fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item"><a asp-controller="Inventory" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gauge"></i><p>Overview</p></a></li>
+                            <li class="nav-item"><a asp-controller="Products" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-box"></i><p>Products</p></a></li>
+                            <li class="nav-item"><a asp-controller="ProductCategories" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-tags"></i><p>Categories</p></a></li>
+                            <li class="nav-item"><a asp-controller="Locations" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-warehouse"></i><p>Locations</p></a></li>
+                            <li class="nav-item"><a asp-controller="InternalTransfers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-right-left"></i><p>Internal Transfer</p></a></li>
+                            <li class="nav-item"><a asp-controller="ItemAdjustmentNotes" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-sliders"></i><p>Adjustment Note</p></a></li>
+                            <li class="nav-item"><a asp-controller="ConsumptionVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-receipt"></i><p>Consumption Voucher</p></a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item">
+                        <a href="#" class="nav-link">
+                            <i class="nav-icon fa-solid fa-file-invoice-dollar"></i>
+                            <p>
+                                Accounts
+                                <i class="nav-arrow fa-solid fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item"><a asp-controller="Accounts" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gauge"></i><p>Overview</p></a></li>
+                            <li class="nav-item"><a asp-controller="ChartOfAccounts" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-sitemap"></i><p>Chart of Accounts</p></a></li>
+                            <li class="nav-item"><a asp-controller="Employees" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-id-badge"></i><p>Employees</p></a></li>
+                            <li class="nav-item"><a asp-controller="JournalVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-book"></i><p>Journal Voucher</p></a></li>
+                            <li class="nav-item"><a asp-controller="CashPaymentVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-bill-wave"></i><p>Cash Payment Voucher</p></a></li>
+                            <li class="nav-item"><a asp-controller="BankPaymentVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-building-columns"></i><p>Bank Payment Voucher</p></a></li>
+                            <li class="nav-item"><a asp-controller="CashReceiptVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-hand-holding-dollar"></i><p>Cash Receipt Voucher</p></a></li>
+                            <li class="nav-item"><a asp-controller="BankReceiptVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-invoice-dollar"></i><p>Bank Receipt Voucher</p></a></li>
+                            <li class="nav-item"><a asp-controller="InventoryVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-boxes-packing"></i><p>Inventory Voucher</p></a></li>
+                            <li class="nav-item"><a asp-controller="AllVouchers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-layer-group"></i><p>All Vouchers</p></a></li>
+                            <li class="nav-item"><a asp-controller="Ledgers" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-book-open"></i><p>Ledgers</p></a></li>
+                            <li class="nav-item"><a asp-controller="CashBook" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-cash-register"></i><p>Cash Book / Daybook</p></a></li>
+                            <li class="nav-item"><a asp-controller="AccountStatements" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-lines"></i><p>Account Statements</p></a></li>
+                            <li class="nav-item"><a asp-controller="InvoicesAndRecoveries" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-magnifying-glass-dollar"></i><p>Invoices &amp; Recoveries</p></a></li>
+                            <li class="nav-item"><a asp-controller="ChequesManagement" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-check"></i><p>Cheques Management</p></a></li>
+                        </ul>
+                    </li>
+                    <li class="nav-item @(isPayrollSettingsPage ? "menu-open" : "")">
+                        <a href="#" class="nav-link @(isPayrollSettingsPage ? "active" : "")">
+                            <i class="nav-icon fa-solid fa-money-check-dollar"></i>
+                            <p>
+                                Payroll
+                                <i class="nav-arrow fa-solid fa-angle-left"></i>
+                            </p>
+                        </a>
+                        <ul class="nav nav-treeview">
+                            <li class="nav-item"><a asp-controller="Payroll" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gauge"></i><p>Overview</p></a></li>
+                            <li class="nav-item"><a asp-controller="Employees" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-id-badge"></i><p>Employees</p></a></li>
+
+                            <li class="nav-item">
+                                <a href="#" class="nav-link">
+                                    <i class="nav-icon fa-solid fa-sitemap"></i>
+                                    <p>Departments<i class="nav-arrow fa-solid fa-angle-left"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item"><a asp-controller="Departments" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-building-user"></i><p>Departments</p></a></li>
+                                    <li class="nav-item"><a asp-controller="Departments" asp-action="Hierarchy" class="nav-link"><i class="nav-icon fa-solid fa-diagram-project"></i><p>Hierarchy</p></a></li>
+                                </ul>
+                            </li>
+
+                            <li class="nav-item">
+                                <a href="#" class="nav-link">
+                                    <i class="nav-icon fa-solid fa-user-clock"></i>
+                                    <p>Attendance<i class="nav-arrow fa-solid fa-angle-left"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item"><a asp-controller="ShiftTimings" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-clock"></i><p>Shift Timings</p></a></li>
+                                    <li class="nav-item"><a asp-controller="Attendance" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-pen-to-square"></i><p>Enter Attendance</p></a></li>
+                                    <li class="nav-item"><a asp-controller="AttendanceSheet" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-table"></i><p>Attendance Sheet</p></a></li>
+                                </ul>
+                            </li>
+
+                            <li class="nav-item">
+                                <a href="#" class="nav-link">
+                                    <i class="nav-icon fa-solid fa-sack-dollar"></i>
+                                    <p>Salary<i class="nav-arrow fa-solid fa-angle-left"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item"><a asp-controller="Payslips" asp-action="Generate" class="nav-link"><i class="nav-icon fa-solid fa-wand-magic-sparkles"></i><p>Generate Payslips</p></a></li>
+                                    <li class="nav-item"><a asp-controller="Payslips" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-receipt"></i><p>Payslips</p></a></li>
+                                    <li class="nav-item"><a asp-controller="SalarySheet" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-table-list"></i><p>Salary Sheet</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayRuns" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-bill-transfer"></i><p>Pay Run</p></a></li>
+                                </ul>
+                            </li>
+
+                            <li class="nav-item">
+                                <a href="#" class="nav-link">
+                                    <i class="nav-icon fa-solid fa-envelope-open-text"></i>
+                                    <p>Employee Requests<i class="nav-arrow fa-solid fa-angle-left"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item"><a asp-controller="LeaveRequests" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-plane-departure"></i><p>Leaves</p></a></li>
+                                    <li class="nav-item"><a asp-controller="LoanAdvanceRequests" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-hand-holding-dollar"></i><p>Loan / Advance</p></a></li>
+                                    <li class="nav-item"><a asp-controller="MidSalaryRequests" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-coins"></i><p>Mid Salary</p></a></li>
+                                    <li class="nav-item"><a asp-controller="LeaveEncashmentRequests" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-money-bill-wheat"></i><p>Leave Encashment</p></a></li>
+                                    <li class="nav-item"><a asp-controller="ReimbursementRequests" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-file-invoice"></i><p>Reimbursement</p></a></li>
+                                </ul>
+                            </li>
+
+                            <li class="nav-item"><a asp-controller="TaxCalculator" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-calculator"></i><p>Tax Calculator</p></a></li>
+                            <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Increments" class="nav-link"><i class="nav-icon fa-solid fa-arrow-trend-up"></i><p>Increments</p></a></li>
+                            <li class="nav-item @(isPayrollSettingsPage ? "menu-open" : "")">
+                                <a href="#" class="nav-link">
+                                    <i class="nav-icon fa-solid fa-gears"></i>
+                                    <p>Payroll Settings<i class="nav-arrow fa-solid fa-angle-left"></i></p>
+                                </a>
+                                <ul class="nav nav-treeview">
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="reimbursement" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "reimbursement" ? "active" : "")"><i class="nav-icon fa-solid fa-receipt"></i><p>Reimbursement Setup</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="leaves" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "leaves" ? "active" : "")"><i class="nav-icon fa-solid fa-plane-departure"></i><p>Leaves Setup</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="holidays" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "holidays" ? "active" : "")"><i class="nav-icon fa-solid fa-calendar-day"></i><p>Holidays Setup</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="statutory" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "statutory" ? "active" : "")"><i class="nav-icon fa-solid fa-landmark"></i><p>Statutory &amp; Tax</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="policies" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "policies" ? "active" : "")"><i class="nav-icon fa-solid fa-scale-balanced"></i><p>Policies &amp; Rules</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="other" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "other" ? "active" : "")"><i class="nav-icon fa-solid fa-sliders"></i><p>Other Settings</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="devices" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "devices" ? "active" : "")"><i class="nav-icon fa-solid fa-fingerprint"></i><p>Attendance Devices</p></a></li>
+                                    <li class="nav-item"><a asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="machine" class="nav-link @(isPayrollSettingsPage && payrollSettingsSection == "machine" ? "active" : "")"><i class="nav-icon fa-solid fa-plug-circle-bolt"></i><p>Machine Integration</p></a></li>
+                                </ul>
+                            </li>
+                        </ul>
+                    </li>
+                    <li class="nav-item"><a asp-controller="Reports" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-chart-line"></i><p>Reports</p></a></li>
+
+                    <li class="nav-header">ADMINISTRATION</li>
+                    @if (User.IsInRole(AppRoles.Admin))
+                    {
+                        <li class="nav-item"><a asp-controller="Users" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-users-gear"></i><p>Users &amp; Roles</p></a></li>
+                    }
+                    <li class="nav-item"><a asp-controller="Company" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-building"></i><p>Company</p></a></li>
+                    <li class="nav-item"><a asp-controller="Settings" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-gears"></i><p>Settings</p></a></li>
+
+                    <li class="nav-header">MY ACCOUNT</li>
+                    <li class="nav-item"><a asp-controller="Profile" asp-action="Index" class="nav-link"><i class="nav-icon fa-solid fa-user"></i><p>My Account</p></a></li>
+                </ul>
+            </nav>
+        </div>
+    </aside>
+
+    <!-- ===== MAIN CONTENT ===== -->
+    <main class="app-main">
+        <div class="app-content-header">
+            <div class="container-fluid">
+                <div class="row">
+                    <div class="col-sm-6"><h3 class="mb-0">@ViewData["Title"]</h3></div>
+                    <div class="col-sm-6 text-sm-end">
+                        <span class="text-muted small">@DateTime.Now.ToString("dddd, dd MMM yyyy")</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="app-content">
+            <div class="container-fluid">
+                @RenderBody()
+            </div>
+        </div>
+    </main>
+
+    <footer class="app-footer text-center text-muted small py-2">
+        &copy; @DateTime.Now.Year ERP System. All rights reserved.
+    </footer>
+</div>
+
+<!-- Hidden logout form (submitted via SweetAlert2 confirmation, see site.js) -->
+<form id="logoutForm" asp-controller="Account" asp-action="Logout" method="post" class="d-none">
+    @Html.AntiForgeryToken()
+</form>
+
+<!-- Toast payload for server-rendered success/error messages (TempData -> Notyf) -->
+<div id="serverToast"
+     data-success="@TempData["SuccessMessage"]"
+     data-error="@TempData["ErrorMessage"]"
+     class="d-none"></div>
+
+<!-- Core JS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/admin-lte@4/dist/js/adminlte.min.js"></script>
+
+<!-- jQuery (required by DataTables / Select2) -->
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+
+<!-- DataTables (core + Responsive + Buttons + export libs) -->
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/2.1.8/js/dataTables.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/3.0.3/js/dataTables.responsive.min.js"></script>
+<script src="https://cdn.datatables.net/responsive/3.0.3/js/responsive.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/dataTables.buttons.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.bootstrap5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.html5.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.print.min.js"></script>
+<script src="https://cdn.datatables.net/buttons/3.1.2/js/buttons.colVis.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/pdfmake.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfmake@0.2.10/build/vfs_fonts.js"></script>
+
+<!-- Select2 -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+
+<!-- intl-tel-input -->
+<script src="https://cdn.jsdelivr.net/npm/intl-tel-input@25.3.1/build/js/intlTelInputWithUtils.min.js"></script>
+
+<!-- Flatpickr -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+
+<!-- SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<!-- Notyf -->
+<script src="https://cdn.jsdelivr.net/npm/notyf@3/notyf.min.js"></script>
+
+<script src="~/js/site.js" asp-append-version="true"></script>
+@await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

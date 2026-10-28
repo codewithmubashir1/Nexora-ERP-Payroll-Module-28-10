@@ -1,0 +1,674 @@
+@using ERP.Identity.Models.Payroll
+@model ERP.Identity.Models.ViewModels.Payroll.PayrollSettingsViewModel
+@{
+    ViewData["Title"] = "Payroll Settings";
+
+    (string Key, string Icon, string Label)[] tabs =
+    {
+        ("reimbursement", "fa-receipt",            "Reimbursement Setup"),
+        ("leaves",        "fa-plane-departure",    "Leaves Setup"),
+        ("holidays",      "fa-calendar-day",       "Holidays Setup"),
+        ("statutory",     "fa-landmark",           "Statutory & Tax"),
+        ("policies",      "fa-scale-balanced",     "Policies & Rules"),
+        ("other",         "fa-sliders",            "Other Settings"),
+        ("devices",       "fa-fingerprint",        "Attendance Devices"),
+        ("machine",       "fa-plug-circle-bolt",   "Machine Integration")
+    };
+    var activeTab = tabs.FirstOrDefault(tab => tab.Key == Model.ActiveTab);
+    if (activeTab.Key is null) activeTab = tabs[0];
+}
+
+<div class="card payroll-settings animate__animated animate__fadeIn">
+    <div class="card-header payroll-settings-header">
+        <div class="dropdown payroll-settings-menu">
+            <button class="btn btn-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                <i class="fa-solid @activeTab.Icon me-2"></i>@activeTab.Label
+            </button>
+            <ul class="dropdown-menu">
+                @foreach (var tab in tabs)
+                {
+                    <li>
+                        <a class="dropdown-item @(Model.ActiveTab == tab.Key ? "active" : "")"
+                           asp-controller="PayrollSettings" asp-action="Index" asp-route-tab="@tab.Key" asp-route-holidayYear="@Model.HolidayYear">
+                            <i class="fa-solid @tab.Icon"></i><span>@tab.Label</span>
+                            @if (Model.ActiveTab == tab.Key)
+                            {
+                                <i class="fa-solid fa-check ms-auto section-current"></i>
+                            }
+                        </a>
+                    </li>
+                }
+            </ul>
+        </div>
+        <span class="payroll-settings-section-label"><i class="fa-solid fa-sliders me-2"></i>Configuration</span>
+    </div>
+    <div class="card-body tab-content">
+
+        @* ---------------- Reimbursement setup ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "reimbursement" ? "show active" : "")" id="tab-reimbursement" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">Expense categories employees can claim against, with an optional per-claim cap.</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#reimbursementModal" data-reset="1">
+                    <i class="fa-solid fa-plus me-1"></i> New Expense Type
+                </button>
+            </div>
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Name</th><th class="text-end">Max Limit</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var r in Model.ReimbursementTypes)
+                    {
+                        <tr>
+                            <td>@r.Name</td>
+                            <td class="text-end">@(r.MaxLimit?.ToString("N2") ?? "No limit")</td>
+                            <td>@Html.Raw(r.IsActive ? "<span class='badge bg-success'>Active</span>" : "<span class='badge bg-secondary'>Inactive</span>")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#reimbursementModal"
+                                        data-id="@r.Id" data-name="@r.Name" data-limit="@(r.MaxLimit?.ToString("0.00") ?? "")" data-active="@r.IsActive.ToString().ToLowerInvariant()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-row-delete" data-url="@Url.Action("DeleteReimbursementType")" data-id="@r.Id">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ---------------- Leaves setup ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "leaves" ? "show active" : "")" id="tab-leaves" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">Leave types, annual entitlement, and whether unused days can be encashed.</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#leaveTypeModal" data-reset="1">
+                    <i class="fa-solid fa-plus me-1"></i> New Leave Type
+                </button>
+            </div>
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Name</th><th class="text-end">Days / Year</th><th>Paid</th><th>Encashable</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var l in Model.LeaveTypes)
+                    {
+                        <tr>
+                            <td>@l.Name</td>
+                            <td class="text-end">@l.DaysPerYear</td>
+                            <td>@Html.Raw(l.IsPaid ? "<i class='fa-solid fa-check text-success'></i>" : "<i class='fa-solid fa-xmark text-muted'></i>")</td>
+                            <td>@Html.Raw(l.IsEncashable ? "<i class='fa-solid fa-check text-success'></i>" : "<i class='fa-solid fa-xmark text-muted'></i>")</td>
+                            <td>@Html.Raw(l.IsActive ? "<span class='badge bg-success'>Active</span>" : "<span class='badge bg-secondary'>Inactive</span>")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#leaveTypeModal"
+                                        data-id="@l.Id" data-name="@l.Name" data-days="@l.DaysPerYear"
+                                        data-paid="@l.IsPaid.ToString().ToLowerInvariant()" data-encashable="@l.IsEncashable.ToString().ToLowerInvariant()"
+                                        data-active="@l.IsActive.ToString().ToLowerInvariant()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-row-delete" data-url="@Url.Action("DeleteLeaveType")" data-id="@l.Id">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ---------------- Holidays setup ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "holidays" ? "show active" : "")" id="tab-holidays" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+                <form method="get" class="d-flex align-items-center gap-2">
+                    <input type="hidden" name="tab" value="holidays" />
+                    <label class="form-label mb-0">Year</label>
+                    <select name="holidayYear" class="form-select form-select-sm" style="width:auto;" onchange="this.form.submit()">
+                        @for (var y = DateTime.Today.Year - 2; y <= DateTime.Today.Year + 2; y++)
+                        {
+                            <option value="@y" selected="@(y == Model.HolidayYear)">@y</option>
+                        }
+                    </select>
+                </form>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#holidayModal" data-reset="1">
+                    <i class="fa-solid fa-plus me-1"></i> New Holiday
+                </button>
+            </div>
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Date</th><th>Day</th><th>Name</th><th>Optional</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    @if (Model.Holidays.Count == 0)
+                    {
+                        <tr><td colspan="5" class="text-muted">No holidays recorded for @Model.HolidayYear.</td></tr>
+                    }
+                    @foreach (var h in Model.Holidays)
+                    {
+                        <tr>
+                            <td>@h.Date.ToString("dd MMM yyyy")</td>
+                            <td class="text-muted">@h.Date.ToString("dddd")</td>
+                            <td>@h.Name</td>
+                            <td>@Html.Raw(h.IsOptional ? "<span class='badge bg-secondary'>Optional</span>" : "<span class='badge bg-primary'>Public</span>")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#holidayModal"
+                                        data-id="@h.Id" data-date="@h.Date.ToString("yyyy-MM-dd")" data-name="@h.Name"
+                                        data-optional="@h.IsOptional.ToString().ToLowerInvariant()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-row-delete" data-url="@Url.Action("DeleteHoliday")" data-id="@h.Id">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ---------------- Statutory deductions and tax slabs ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "statutory" ? "show active" : "")" id="tab-statutory" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">Percentage-based deductions such as EOBI and Provident Fund.</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#statutoryModal" data-reset="1">
+                    <i class="fa-solid fa-plus me-1"></i> New Deduction
+                </button>
+            </div>
+            <table class="table table-sm table-striped align-middle mb-4">
+                <thead><tr><th>Name</th><th class="text-end">Rate %</th><th class="text-end">Wage Ceiling</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var s in Model.StatutoryDeductions)
+                    {
+                        <tr>
+                            <td>@s.Name</td>
+                            <td class="text-end">@s.RatePercent.ToString("0.##")</td>
+                            <td class="text-end">@(s.MaxApplicableSalary?.ToString("N2") ?? "No ceiling")</td>
+                            <td>@Html.Raw(s.IsActive ? "<span class='badge bg-success'>Active</span>" : "<span class='badge bg-secondary'>Inactive</span>")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#statutoryModal"
+                                        data-id="@s.Id" data-name="@s.Name" data-rate="@s.RatePercent.ToString("0.00")"
+                                        data-ceiling="@(s.MaxApplicableSalary?.ToString("0.00") ?? "")" data-active="@s.IsActive.ToString().ToLowerInvariant()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-row-delete" data-url="@Url.Action("DeleteStatutoryDeduction")" data-id="@s.Id">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">
+                    Progressive income-tax slabs on annual taxable income. These drive the Tax Calculator.
+                </p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#taxSlabModal" data-reset="1">
+                    <i class="fa-solid fa-plus me-1"></i> New Slab
+                </button>
+            </div>
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th class="text-end">From</th><th class="text-end">To</th><th class="text-end">Rate %</th><th class="text-end">Fixed Amount</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var t in Model.TaxSlabs)
+                    {
+                        <tr>
+                            <td class="text-end">@t.MinIncome.ToString("N0")</td>
+                            <td class="text-end">@(t.MaxIncome?.ToString("N0") ?? "and above")</td>
+                            <td class="text-end">@t.RatePercent.ToString("0.##")</td>
+                            <td class="text-end">@t.FixedAmount.ToString("N2")</td>
+                            <td>@Html.Raw(t.IsActive ? "<span class='badge bg-success'>Active</span>" : "<span class='badge bg-secondary'>Inactive</span>")</td>
+                            <td class="text-end">
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#taxSlabModal"
+                                        data-id="@t.Id" data-min="@t.MinIncome.ToString("0.00")" data-max="@(t.MaxIncome?.ToString("0.00") ?? "")"
+                                        data-rate="@t.RatePercent.ToString("0.00")" data-fixed="@t.FixedAmount.ToString("0.00")"
+                                        data-active="@t.IsActive.ToString().ToLowerInvariant()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-row-delete" data-url="@Url.Action("DeleteTaxSlab")" data-id="@t.Id">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ---------------- Policies and rules ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "policies" ? "show active" : "")" id="tab-policies" role="tabpanel">
+            <p class="text-muted">
+                Late-coming grace here is added to the shift's own grace period when attendance is saved.
+            </p>
+            <div class="row">
+                @foreach (var policy in Model.Policies)
+                {
+                    var isHolidayRule = policy.PolicyType == AttendancePolicyType.HolidayWorking;
+                    <div class="col-lg-6">
+                        <form asp-action="SavePolicy" method="post" class="card mb-3">
+                            @Html.AntiForgeryToken()
+                            <input type="hidden" name="id" value="@policy.Id" />
+                            <div class="card-header">
+                                <h3 class="card-title">
+                                    @System.Text.RegularExpressions.Regex.Replace(policy.PolicyType.ToString(), "([A-Z])", " $1").Trim() Rule
+                                </h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="row g-3">
+                                    <div class="col-md-6">
+                                        <label class="form-label">Grace Period (minutes)</label>
+                                        <input name="gracePeriodMinutes" type="number" min="0" max="480" value="@policy.GracePeriodMinutes" class="form-control" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Tolerated Occurrences / Month</label>
+                                        <input name="maxOccurrencesPerMonth" type="number" min="0" max="31" value="@policy.MaxOccurrencesPerMonth" class="form-control" />
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Penalty On Exceeding</label>
+                                        <select name="penaltyOnExceeding" class="form-select">
+                                            @foreach (PenaltyType p in Enum.GetValues<PenaltyType>())
+                                            {
+                                                <option value="@((int)p)" selected="@(p == policy.PenaltyOnExceeding)">
+                                                    @System.Text.RegularExpressions.Regex.Replace(p.ToString(), "([A-Z])", " $1").Trim()
+                                                </option>
+                                            }
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <label class="form-label">Rate Multiplier</label>
+                                        <input name="overtimeRateMultiplier" type="number" step="0.01" min="0"
+                                               value="@(policy.OvertimeRateMultiplier?.ToString("0.00") ?? "")" class="form-control" placeholder="e.g. 2.00" />
+                                    </div>
+
+                                    @if (isHolidayRule)
+                                    {
+                                        <div class="col-12">
+                                            <label class="form-label">Compensation Type</label>
+                                            <select name="compensationType" class="form-select">
+                                                @foreach (var option in new[] { "CompOff", "DoublePay", "OvertimeRate" })
+                                                {
+                                                    <option value="@option" selected="@(policy.CompensationType == option)">@option</option>
+                                                }
+                                            </select>
+                                        </div>
+                                    }
+
+                                    <div class="col-12">
+                                        <label class="form-label">Notes</label>
+                                        <textarea name="notes" class="form-control" rows="2">@policy.Notes</textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="card-footer text-end">
+                                <button type="submit" class="btn btn-primary btn-sm"><i class="fa-solid fa-floppy-disk me-1"></i> Save Rule</button>
+                            </div>
+                        </form>
+                    </div>
+                }
+            </div>
+        </div>
+
+        @* ---------------- Other settings ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "other" ? "show active" : "")" id="tab-other" role="tabpanel">
+            <form asp-action="SaveOtherSettings" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.Other.Id" />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">Working Days Per Week</label>
+                        <input name="WorkingDaysPerWeek" type="number" min="1" max="7" value="@Model.Other.WorkingDaysPerWeek" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fiscal Year Starts</label>
+                        <select name="FiscalYearStartMonth" class="form-select">
+                            @for (var m = 1; m <= 12; m++)
+                            {
+                                <option value="@m" selected="@(m == Model.Other.FiscalYearStartMonth)">@(new DateTime(2000, m, 1).ToString("MMMM"))</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Default Currency</label>
+                        <input name="DefaultCurrency" value="@Model.Other.DefaultCurrency" maxlength="10" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Payroll Cut-off Day</label>
+                        <input name="PayrollCutoffDay" type="number" min="1" max="31" value="@Model.Other.PayrollCutoffDay" class="form-control" />
+                    </div>
+
+                    <div class="col-md-3">
+                        <label class="form-label">Overtime Rate Multiplier</label>
+                        <input name="OvertimeRateMultiplier" type="number" step="0.01" min="0" value="@Model.Other.OvertimeRateMultiplier.ToString("0.00")" class="form-control" />
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Fixed Monthly Deduction</label>
+                        <input name="MonthlyFixedDeduction" type="number" step="0.01" min="0" value="@Model.Other.MonthlyFixedDeduction.ToString("0.00")" class="form-control" />
+                        <div class="form-text">Taken from every salary and credited to the employee's ledger.</div>
+                    </div>
+                    <div class="col-md-3 d-flex align-items-center">
+                        <div class="form-check form-switch mt-3">
+                            <input name="RoundOffNetPay" value="true" type="checkbox" class="form-check-input" role="switch" @(Model.Other.RoundOffNetPay ? "checked" : "") />
+                            <input type="hidden" name="RoundOffNetPay" value="false" />
+                            <label class="form-check-label">Round off net pay</label>
+                        </div>
+                    </div>
+                </div>
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Save Settings</button>
+                </div>
+            </form>
+        </div>
+
+        @* ---------------- Attendance devices ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "devices" ? "show active" : "")" id="tab-devices" role="tabpanel">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <p class="text-muted mb-0">Biometric readers, RFID terminals and manual entry points.</p>
+                <button class="btn btn-primary btn-sm" data-bs-toggle="modal" data-bs-target="#deviceModal" data-reset="1">
+                    <i class="fa-solid fa-plus me-1"></i> New Device
+                </button>
+            </div>
+            <table class="table table-sm table-striped align-middle">
+                <thead><tr><th>Name</th><th>Type</th><th>Location</th><th>IP Address</th><th>Serial</th><th>Last Sync</th><th>Status</th><th class="text-end">Actions</th></tr></thead>
+                <tbody>
+                    @foreach (var d in Model.Devices)
+                    {
+                        <tr>
+                            <td>@d.Name</td>
+                            <td>@d.DeviceType</td>
+                            <td>@(d.Location ?? "—")</td>
+                            <td>@(d.IPAddress ?? "—")</td>
+                            <td>@(d.SerialNumber ?? "—")</td>
+                            <td>@(d.LastSyncOn?.ToString("dd MMM yyyy HH:mm") ?? "Never")</td>
+                            <td>@Html.Raw(d.IsActive ? "<span class='badge bg-success'>Active</span>" : "<span class='badge bg-secondary'>Inactive</span>")</td>
+                            <td class="text-end text-nowrap">
+                                <button class="btn btn-sm btn-outline-info btn-sync" data-id="@d.Id" title="Sync now"><i class="fa-solid fa-rotate"></i></button>
+                                <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#deviceModal"
+                                        data-id="@d.Id" data-name="@d.Name" data-location="@d.Location" data-type="@((int)d.DeviceType)"
+                                        data-ip="@d.IPAddress" data-serial="@d.SerialNumber" data-active="@d.IsActive.ToString().ToLowerInvariant()">
+                                    <i class="fa-solid fa-pen"></i>
+                                </button>
+                                <button class="btn btn-sm btn-outline-danger btn-row-delete" data-url="@Url.Action("DeleteDevice")" data-id="@d.Id">
+                                    <i class="fa-solid fa-trash"></i>
+                                </button>
+                            </td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        @* ---------------- Machine integration ---------------- *@
+        <div class="tab-pane fade @(Model.ActiveTab == "machine" ? "show active" : "")" id="tab-machine" role="tabpanel">
+            <div class="alert alert-info">
+                <i class="fa-solid fa-circle-info me-1"></i>
+                ZKTeco ADMS push is supported. Register an active biometric device with its serial number,
+                set this shared API key on the device as its <code>KEY</code>, and configure the device PIN
+                to match the employee code (or employee ID). Punches are merged into one daily attendance record.
+            </div>
+            <div class="machine-endpoint mb-3">
+                <span class="form-label">ZKTeco ADMS push URL</span>
+                <code>@($"{Context.Request.Scheme}://{Context.Request.Host}/api/zkteco/iclock/cdata")</code>
+                <span class="form-text">The device must be able to reach this URL. Send the shared key as <code>KEY</code>, <code>X-Api-Key</code>, or a bearer token.</span>
+            </div>
+            <form asp-action="SaveMachineIntegration" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" name="Id" value="@Model.MachineIntegration.Id" />
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label">External Sync Mode</label>
+                        <select name="SyncMode" class="form-select">
+                            <option value="Manual" selected="@(Model.MachineIntegration.SyncMode == "Manual")">Manual</option>
+                            <option value="Scheduled" selected="@(Model.MachineIntegration.SyncMode == "Scheduled")">Scheduled</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">External Sync Interval (minutes)</label>
+                        <input name="SyncIntervalMinutes" type="number" min="1" max="1440" value="@Model.MachineIntegration.SyncIntervalMinutes" class="form-control" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">External endpoint (optional)</label>
+                        <input name="ApiEndpoint" value="@Model.MachineIntegration.ApiEndpoint" class="form-control" placeholder="Other vendor endpoint" />
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Shared API key</label>
+                        <input name="ApiKey" value="@Model.MachineIntegration.ApiKey" class="form-control" autocomplete="new-password" />
+                    </div>
+                    <div class="col-12">
+                        <label class="form-label">Notes</label>
+                        <textarea name="Notes" class="form-control" rows="3">@Model.MachineIntegration.Notes</textarea>
+                    </div>
+                </div>
+                <div class="text-end mt-3">
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> Save Integration</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()
+
+@* ---------------- Modals ---------------- *@
+
+<div class="modal fade" id="reimbursementModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="SaveReimbursementType" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="0" />
+            <div class="modal-header"><h5 class="modal-title">Expense Type</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+                <div class="mb-3"><label class="form-label">Max Limit (optional)</label><input name="maxLimit" type="number" step="0.01" min="0" class="form-control" /></div>
+                <div class="form-check form-switch">
+                    <input name="isActive" value="true" type="checkbox" class="form-check-input" role="switch" checked />
+                    <input type="hidden" name="isActive" value="false" />
+                    <label class="form-check-label">Active</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="leaveTypeModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="SaveLeaveType" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="0" />
+            <div class="modal-header"><h5 class="modal-title">Leave Type</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+                <div class="mb-3"><label class="form-label">Days Per Year</label><input name="daysPerYear" type="number" min="0" max="365" value="0" class="form-control" /></div>
+                <div class="form-check form-switch">
+                    <input name="isPaid" value="true" type="checkbox" class="form-check-input" role="switch" checked />
+                    <input type="hidden" name="isPaid" value="false" />
+                    <label class="form-check-label">Paid leave</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input name="isEncashable" value="true" type="checkbox" class="form-check-input" role="switch" />
+                    <input type="hidden" name="isEncashable" value="false" />
+                    <label class="form-check-label">Encashable</label>
+                </div>
+                <div class="form-check form-switch">
+                    <input name="isActive" value="true" type="checkbox" class="form-check-input" role="switch" checked />
+                    <input type="hidden" name="isActive" value="false" />
+                    <label class="form-check-label">Active</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="holidayModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="SaveHoliday" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="0" />
+            <div class="modal-header"><h5 class="modal-title">Holiday</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Date</label><input name="date" type="date" class="form-control" required /></div>
+                <div class="mb-3"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+                <div class="form-check form-switch">
+                    <input name="isOptional" value="true" type="checkbox" class="form-check-input" role="switch" />
+                    <input type="hidden" name="isOptional" value="false" />
+                    <label class="form-check-label">Optional holiday</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="statutoryModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="SaveStatutoryDeduction" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="0" />
+            <div class="modal-header"><h5 class="modal-title">Statutory Deduction</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+                <div class="mb-3"><label class="form-label">Rate %</label><input name="ratePercent" type="number" step="0.01" min="0" max="100" value="0" class="form-control" /></div>
+                <div class="mb-3">
+                    <label class="form-label">Wage Ceiling (optional)</label>
+                    <input name="maxApplicableSalary" type="number" step="0.01" min="0" class="form-control" />
+                    <div class="form-text">The percentage applies only up to this monthly salary.</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input name="isActive" value="true" type="checkbox" class="form-check-input" role="switch" checked />
+                    <input type="hidden" name="isActive" value="false" />
+                    <label class="form-check-label">Active</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="taxSlabModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="SaveTaxSlab" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="0" />
+            <div class="modal-header"><h5 class="modal-title">Tax Slab</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">From (annual)</label><input name="minIncome" type="number" step="0.01" min="0" value="0" class="form-control" /></div>
+                <div class="mb-3">
+                    <label class="form-label">To (annual)</label>
+                    <input name="maxIncome" type="number" step="0.01" min="0" class="form-control" />
+                    <div class="form-text">Leave empty for the top "and above" slab.</div>
+                </div>
+                <div class="mb-3"><label class="form-label">Rate %</label><input name="ratePercent" type="number" step="0.01" min="0" max="100" value="0" class="form-control" /></div>
+                <div class="mb-3">
+                    <label class="form-label">Fixed Amount</label>
+                    <input name="fixedAmount" type="number" step="0.01" min="0" value="0" class="form-control" />
+                    <div class="form-text">Added on top of the percentage, e.g. "1,250 + 5% of the amount over 100,000".</div>
+                </div>
+                <div class="form-check form-switch">
+                    <input name="isActive" value="true" type="checkbox" class="form-check-input" role="switch" checked />
+                    <input type="hidden" name="isActive" value="false" />
+                    <label class="form-check-label">Active</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+</div>
+
+<div class="modal fade" id="deviceModal" tabindex="-1">
+    <div class="modal-dialog">
+        <form asp-action="SaveDevice" method="post" class="modal-content">
+            @Html.AntiForgeryToken()
+            <input type="hidden" name="id" value="0" />
+            <div class="modal-header"><h5 class="modal-title">Attendance Device</h5><button type="button" class="btn-close" data-bs-dismiss="modal"></button></div>
+            <div class="modal-body">
+                <div class="mb-3"><label class="form-label">Name</label><input name="name" class="form-control" required /></div>
+                <div class="mb-3">
+                    <label class="form-label">Device Type</label>
+                    <select name="deviceType" class="form-select">
+                        @foreach (AttendanceDeviceType t in Enum.GetValues<AttendanceDeviceType>())
+                        {
+                            <option value="@((int)t)">@t</option>
+                        }
+                    </select>
+                </div>
+                <div class="mb-3"><label class="form-label">Location</label><input name="location" class="form-control" /></div>
+                <div class="mb-3"><label class="form-label">IP Address</label><input name="ipAddress" class="form-control" placeholder="192.168.1.50" /></div>
+                <div class="mb-3"><label class="form-label">Serial Number</label><input name="serialNumber" class="form-control" /></div>
+                <div class="form-check form-switch">
+                    <input name="isActive" value="true" type="checkbox" class="form-check-input" role="switch" checked />
+                    <input type="hidden" name="isActive" value="false" />
+                    <label class="form-check-label">Active</label>
+                </div>
+            </div>
+            <div class="modal-footer"><button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button><button type="submit" class="btn btn-primary">Save</button></div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        // Each modal is filled from the clicked row's data-* attributes; the New button
+        // carries data-reset so the same modal doubles as the create form.
+        const MODAL_FIELDS = {
+            reimbursementModal: { name: 'name', limit: 'maxLimit' },
+            leaveTypeModal:     { name: 'name', days: 'daysPerYear' },
+            holidayModal:       { date: 'date', name: 'name' },
+            statutoryModal:     { name: 'name', rate: 'ratePercent', ceiling: 'maxApplicableSalary' },
+            taxSlabModal:       { min: 'minIncome', max: 'maxIncome', rate: 'ratePercent', fixed: 'fixedAmount' },
+            deviceModal:        { name: 'name', location: 'location', ip: 'ipAddress', serial: 'serialNumber', type: 'deviceType' }
+        };
+
+        const MODAL_SWITCHES = {
+            reimbursementModal: { active: 'isActive' },
+            leaveTypeModal:     { paid: 'isPaid', encashable: 'isEncashable', active: 'isActive' },
+            holidayModal:       { optional: 'isOptional' },
+            statutoryModal:     { active: 'isActive' },
+            taxSlabModal:       { active: 'isActive' },
+            deviceModal:        { active: 'isActive' }
+        };
+
+        document.querySelectorAll('.modal').forEach(function (modal) {
+            modal.addEventListener('show.bs.modal', function (event) {
+                const trigger = event.relatedTarget;
+                if (!trigger) return;
+
+                const form = modal.querySelector('form');
+                const isNew = trigger.hasAttribute('data-reset');
+                const fields = MODAL_FIELDS[modal.id] || {};
+                const switches = MODAL_SWITCHES[modal.id] || {};
+
+                form.querySelector('input[name="id"]').value = isNew ? '0' : (trigger.getAttribute('data-id') || '0');
+
+                Object.entries(fields).forEach(function ([attr, inputName]) {
+                    const input = form.querySelector(`[name="${inputName}"]`);
+                    if (input) input.value = isNew ? '' : (trigger.getAttribute('data-' + attr) || '');
+                });
+
+                Object.entries(switches).forEach(function ([attr, inputName]) {
+                    const box = form.querySelector(`input[type="checkbox"][name="${inputName}"]`);
+                    if (!box) return;
+                    box.checked = isNew ? (inputName === 'isActive' || inputName === 'isPaid')
+                                        : trigger.getAttribute('data-' + attr) === 'true';
+                });
+            });
+        });
+
+        // Row deletes all return JSON, so the page only reloads on success.
+        document.querySelectorAll('.btn-row-delete').forEach(function (button) {
+            button.addEventListener('click', function () {
+                confirmDelete(this.getAttribute('data-url'), token,
+                    function () { window.location.reload(); },
+                    { id: button.getAttribute('data-id') });
+            });
+        });
+
+        document.querySelectorAll('.btn-sync').forEach(function (button) {
+            button.addEventListener('click', function () {
+                fetch('/Payroll/Attendance/SyncDevice', {
+                    method: 'POST',
+                    headers: { 'RequestVerificationToken': token, 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: 'deviceId=' + encodeURIComponent(button.getAttribute('data-id'))
+                })
+                    .then(r => r.json())
+                    .then(d => d.success ? notyf.success(d.message) : notyf.error(d.message || 'Sync failed.'))
+                    .catch(() => notyf.error('Request failed. Please try again.'));
+            });
+        });
+    </script>
+}

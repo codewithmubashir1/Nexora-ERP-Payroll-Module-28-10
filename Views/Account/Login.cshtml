@@ -1,0 +1,88 @@
+@model ERP.Identity.Models.ViewModels.LoginViewModel
+@{
+    Layout = "_LoginLayout";
+    ViewData["Title"] = "Login";
+}
+
+<div class="login-page">
+    <div class="login-stage animate__animated animate__fadeInUp">
+        <section class="login-intro">
+            <div class="login-mark"><i class="fa-solid fa-cubes-stacked"></i></div>
+            <p class="eyebrow">ERP / OPERATIONS SUITE</p>
+            <h1>Run the work<br><em>beautifully.</em></h1>
+            <p class="intro-copy">A clear command center for the people, products, payments, and decisions that move your business forward.</p>
+            <div class="intro-foot"><span class="status-dot"></span> Workspace ready <span class="intro-divider"></span> @DateTime.Now.ToString("yyyy")</div>
+        </section>
+        <section class="login-panel">
+            <div class="login-panel-heading">
+                <p class="eyebrow">WELCOME BACK</p>
+                <h2>Sign in to your workspace</h2>
+                <p>Use your company credentials to continue.</p>
+            </div>
+            <div class="card-body">
+                <form asp-controller="Account" asp-action="Login" method="post" novalidate>
+                    <input type="hidden" asp-for="ReturnUrl" />
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+
+                    <div class="input-group mb-3">
+                        <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                        <input asp-for="Email" class="form-control" placeholder="Email" autocomplete="username" />
+                    </div>
+                    <span asp-validation-for="Email" class="text-danger small"></span>
+
+                    <div class="input-group mb-3 mt-2">
+                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                        <input asp-for="Password" type="password" class="form-control" placeholder="Password" autocomplete="current-password" />
+                        <span class="input-group-text toggle-password" role="button" title="Show/Hide password">
+                            <i class="fa-solid fa-eye"></i>
+                        </span>
+                    </div>
+                    <span asp-validation-for="Password" class="text-danger small"></span>
+
+                    <div class="row mt-3">
+                        <div class="col-7">
+                            <div class="form-check">
+                                <input asp-for="RememberMe" class="form-check-input" />
+                                <label asp-for="RememberMe" class="form-check-label">Remember Me</label>
+                            </div>
+                        </div>
+                        <div class="col-5 text-end">
+                            <button type="submit" class="btn btn-primary px-4 login-submit">
+                                <i class="fa-solid fa-right-to-bracket me-1"></i> Sign In
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </section>
+    </div>
+    <p class="login-legal">&copy; @DateTime.Now.Year ERP System <span>•</span> Secure business operations</p>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        document.querySelector('.toggle-password')?.addEventListener('click', function () {
+            const pwd = document.querySelector('input[name="Password"]');
+            const icon = this.querySelector('i');
+            if (pwd.type === 'password') {
+                pwd.type = 'text';
+                icon.classList.replace('fa-eye', 'fa-eye-slash');
+            } else {
+                pwd.type = 'password';
+                icon.classList.replace('fa-eye-slash', 'fa-eye');
+            }
+        });
+
+        @if (!ViewData.ModelState.IsValid)
+        {
+            <text>
+            document.addEventListener('DOMContentLoaded', function () {
+                if (window.notyf) {
+                    notyf.error('Please check the highlighted fields.');
+                }
+            });
+            </text>
+        }
+    </script>
+}

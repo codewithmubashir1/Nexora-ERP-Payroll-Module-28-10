@@ -1,0 +1,148 @@
+@{
+    ViewData["Title"] = "Inventory";
+}
+
+<div class="row overview-kpi-grid">
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-primary animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="id-productCount">@ViewBag.ProductCount</h3><p>Products</p></div>
+            <div class="icon"><i class="fa-solid fa-boxes-stacked"></i></div>
+            <a asp-controller="Products" asp-action="Index" class="small-box-footer">Manage <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-warning animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="id-pendingApprovals">@ViewBag.PendingApprovals</h3><p>Pending Approvals</p></div>
+            <div class="icon"><i class="fa-solid fa-clipboard-check"></i></div>
+            <a asp-controller="InternalTransfers" asp-action="Index" class="small-box-footer">Review <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-info animate__animated animate__fadeInUp">
+            <div class="inner"><h3 id="id-categoryCount">@ViewBag.CategoryCount</h3><p>Categories</p></div>
+            <div class="icon"><i class="fa-solid fa-tags"></i></div>
+            <a asp-controller="ProductCategories" asp-action="Index" class="small-box-footer">Manage <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-success animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="id-locationCount">@ViewBag.LocationCount</h3><p>Locations</p></div>
+            <div class="icon"><i class="fa-solid fa-warehouse"></i></div>
+            <a asp-controller="Locations" asp-action="Index" class="small-box-footer">Manage <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-warning animate__animated animate__fadeInUp animate__delay-1s">
+            <div class="inner"><h3 id="id-transferCount">@ViewBag.TransferCount</h3><p>Transfers</p></div>
+            <div class="icon"><i class="fa-solid fa-right-left"></i></div>
+            <a asp-controller="InternalTransfers" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-secondary animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner"><h3 id="id-adjustmentCount">@ViewBag.AdjustmentCount</h3><p>Adjustments</p></div>
+            <div class="icon"><i class="fa-solid fa-sliders"></i></div>
+            <a asp-controller="ItemAdjustmentNotes" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+    <div class="col-lg-2 col-6">
+        <div class="small-box bg-danger animate__animated animate__fadeInUp animate__delay-2s">
+            <div class="inner"><h3 id="id-consumptionCount">@ViewBag.ConsumptionCount</h3><p>Consumption</p></div>
+            <div class="icon"><i class="fa-solid fa-receipt"></i></div>
+            <a asp-controller="ConsumptionVouchers" asp-action="Index" class="small-box-footer">View <i class="fa-solid fa-arrow-circle-right"></i></a>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-lg-7">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header"><h3 class="card-title"><i class="fa-solid fa-bolt me-2"></i>Quick Actions</h3></div>
+            <div class="card-body">
+                <div class="row g-3">
+                    <div class="col-md-4">
+                        <a asp-controller="Products" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-box-open d-block mb-1 fa-lg"></i> New Product
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="InternalTransfers" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-right-left d-block mb-1 fa-lg"></i> New Transfer
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="ItemAdjustmentNotes" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-sliders d-block mb-1 fa-lg"></i> New Adjustment
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="ConsumptionVouchers" asp-action="Create" class="btn btn-outline-primary w-100">
+                            <i class="fa-solid fa-receipt d-block mb-1 fa-lg"></i> New Consumption
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="ProductCategories" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-tags d-block mb-1 fa-lg"></i> New Category
+                        </a>
+                    </div>
+                    <div class="col-md-4">
+                        <a asp-controller="Locations" asp-action="Create" class="btn btn-outline-secondary w-100">
+                            <i class="fa-solid fa-warehouse d-block mb-1 fa-lg"></i> New Location
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-5">
+        <div class="card animate__animated animate__fadeIn">
+            <div class="card-header">
+                <h3 class="card-title"><i class="fa-solid fa-triangle-exclamation text-warning me-2"></i>Low Stock Alerts</h3>
+            </div>
+            <div class="card-body p-0">
+                @{ var lowStock = (IEnumerable<dynamic>)ViewBag.LowStockProducts; }
+                @if (!lowStock.Any())
+                {
+                    <p class="text-muted text-center py-4 mb-0">Nothing below reorder level right now.</p>
+                }
+                else
+                {
+                    <ul class="list-group list-group-flush">
+                        @foreach (var p in lowStock)
+                        {
+                            <li class="list-group-item d-flex justify-content-between align-items-center">
+                                <div>
+                                    <div class="fw-semibold">@p.Name</div>
+                                    <small class="text-muted">@p.Sku</small>
+                                </div>
+                                <span class="badge bg-danger">@p.CurrentStock / @p.ReorderLevel</span>
+                            </li>
+                        }
+                    </ul>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function refreshInventoryDashboard() {
+            fetch('/Inventory/GetSummary')
+                .then(r => r.ok ? r.json() : Promise.reject())
+                .then(data => {
+                    document.getElementById('id-productCount').textContent = data.productCount;
+                    document.getElementById('id-pendingApprovals').textContent = data.pendingApprovals;
+                    document.getElementById('id-categoryCount').textContent = data.categoryCount;
+                    document.getElementById('id-locationCount').textContent = data.locationCount;
+                    document.getElementById('id-transferCount').textContent = data.transferCount;
+                    document.getElementById('id-adjustmentCount').textContent = data.adjustmentCount;
+                    document.getElementById('id-consumptionCount').textContent = data.consumptionCount;
+                })
+                .catch(() => { /* silent - keep last known values on transient failure */ });
+        }
+
+        setInterval(refreshInventoryDashboard, 20000);
+    </script>
+}

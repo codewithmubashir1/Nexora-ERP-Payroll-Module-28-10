@@ -1,0 +1,21 @@
+@{
+    ViewData["Title"] = "Loan / Advance Requests";
+
+    var page = new ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+    {
+        Controller = "LoanAdvanceRequests",
+        Title = "Loan / Advance Requests",
+        NewButtonText = "New Request",
+        CategoryLabel = "Type",
+        DetailLabel = "Recovery",
+        ShowAmount = true,
+        CanApprove = ViewBag.CanApprove != null && (bool)ViewBag.CanApprove,
+        HelpText = "An approved amount appears on the next payslip as the current advance and is recovered over the requested number of months."
+    };
+}
+
+<partial name="_RequestList" model="page" />
+
+@section Scripts {
+    <partial name="_RequestListScripts" model="page" />
+}

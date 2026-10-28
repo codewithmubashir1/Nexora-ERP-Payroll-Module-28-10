@@ -1,0 +1,240 @@
+@model ERP.Identity.Models.ViewModels.Payroll.PayrollEmployeeFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Employee" : "New Employee";
+    var designationOptions = ERP.Identity.Models.EmploymentOptions.Designations;
+    var bankOptions = ERP.Identity.Models.EmploymentOptions.PakistaniBanks;
+    var bloodGroupOptions = ERP.Identity.Models.EmploymentOptions.BloodGroups;
+}
+
+<form asp-controller="Employees" asp-action="Save" method="post" enctype="multipart/form-data" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+    <input type="hidden" asp-for="ExistingProfileImagePath" />
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Photo &amp; Identifiers</h3></div>
+                <div class="card-body">
+                    <partial name="_AvatarUpload" model="@Model.ExistingProfileImagePath"
+                             view-data='@(new ViewDataDictionary(ViewData) { { "InputName", "ProfileImage" }, { "Label", "Employee Photo" } })' />
+                    <span asp-validation-for="ProfileImage" class="text-danger small d-block text-center"></span>
+
+                    <div class="mb-3 mt-3">
+                        <label class="form-label">Employee Code</label>
+                        <input value="@(isEdit ? Model.EmployeeCode : "Auto-generated on save")" class="form-control" readonly disabled />
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="CNICNumber" class="form-label"></label>
+                        <input asp-for="CNICNumber" id="cnicInput" class="form-control" placeholder="00000-0000000-0" maxlength="15" inputmode="numeric" />
+                        <span asp-validation-for="CNICNumber" class="text-danger small"></span>
+                        <div class="form-text">Dashes are added automatically.</div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="BloodGroup" class="form-label"></label>
+                        <select asp-for="BloodGroup" class="form-select select2" data-placeholder="Select blood group">
+                            <option></option>
+                            @foreach (var bloodGroup in bloodGroupOptions)
+                            {
+                                <option value="@bloodGroup">@bloodGroup</option>
+                            }
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label asp-for="JoiningDate" class="form-label"></label>
+                        <input asp-for="JoiningDate" type="text" class="form-control datepicker" autocomplete="off" />
+                    </div>
+
+                    <div class="form-check form-switch mt-3">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Personal &amp; Contact Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="DepartmentId" class="form-label"></label>
+                            <select asp-for="DepartmentId" class="form-select select2" data-placeholder="Select department">
+                                <option></option>
+                                @foreach (var d in Model.Departments)
+                                {
+                                    <option value="@d.Id" selected="@(d.Id == Model.DepartmentId)">@d.Name</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="Designation" class="form-label"></label>
+                            <select asp-for="Designation" class="form-select select2" data-placeholder="Select designation">
+                                <option></option>
+                                @if (!string.IsNullOrWhiteSpace(Model.Designation) && !designationOptions.Contains(Model.Designation))
+                                {
+                                    <option value="@Model.Designation">@Model.Designation</option>
+                                }
+                                @foreach (var designation in designationOptions)
+                                {
+                                    <option value="@designation">@designation</option>
+                                }
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input type="hidden" asp-for="ContactCountryCode" id="contactCountryCode" />
+                            <input asp-for="Phone" type="tel" class="form-control phone-input" data-contact-country-code="@Model.ContactCountryCode" data-country-code-input="contactCountryCode" placeholder="300 1234567" />
+                            <span asp-validation-for="Phone" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                            <span asp-validation-for="Email" class="text-danger small"></span>
+                        </div>
+
+                        <div class="col-md-9">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="ZipCode" class="form-label"></label>
+                            <input asp-for="ZipCode" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Shift &amp; Salary</h3></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label asp-for="ShiftTimingId" class="form-label"></label>
+                            <select asp-for="ShiftTimingId" id="shiftSelect" class="form-select select2" data-placeholder="Select shift">
+                                <option></option>
+                                @foreach (var s in Model.Shifts)
+                                {
+                                    <option value="@s.Id" data-hours="@s.Hours.ToString("0.##")" selected="@(s.Id == Model.ShiftTimingId)">@s.Name</option>
+                                }
+                            </select>
+                            <div class="form-text">Shift length is the divisor in the overtime rate.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="BasicSalary" class="form-label"></label>
+                            <input asp-for="BasicSalary" id="basicSalary" type="number" step="0.01" min="0" class="form-control" />
+                            <span asp-validation-for="BasicSalary" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Overtime Rate / Hour</label>
+                            <input id="overtimeRate" class="form-control" readonly disabled value="0.00" />
+                            <div class="form-text">basic &divide; 30 &divide; shift hours</div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <label asp-for="HouseRentAllowance" class="form-label"></label>
+                            <input asp-for="HouseRentAllowance" type="number" step="0.01" min="0" class="form-control allowance" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="MedicalAllowance" class="form-label"></label>
+                            <input asp-for="MedicalAllowance" type="number" step="0.01" min="0" class="form-control allowance" />
+                        </div>
+                        <div class="col-md-3">
+                            <label asp-for="OtherAllowances" class="form-label"></label>
+                            <input asp-for="OtherAllowances" type="number" step="0.01" min="0" class="form-control allowance" />
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">Gross Monthly</label>
+                            <input id="grossSalary" class="form-control fw-semibold" readonly disabled value="0.00" />
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Bank &amp; Statutory</h3></div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label asp-for="BankName" class="form-label"></label>
+                            <select asp-for="BankName" class="form-select select2" data-placeholder="Select bank">
+                                <option></option>
+                                @if (!string.IsNullOrWhiteSpace(Model.BankName) && !bankOptions.Contains(Model.BankName))
+                                {
+                                    <option value="@Model.BankName">@Model.BankName</option>
+                                }
+                                @foreach (var bank in bankOptions)
+                                {
+                                    <option value="@bank">@bank</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="BankAccountNumber" class="form-label"></label>
+                            <input asp-for="BankAccountNumber" class="form-control" placeholder="Account number or IBAN" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="TaxNumber" class="form-label"></label>
+                            <input asp-for="TaxNumber" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="EOBINumber" class="form-label"></label>
+                            <input asp-for="EOBINumber" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="Employees" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update Employee" : "Create Employee")
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // CNIC: 00000-0000000-0
+        document.getElementById('cnicInput')?.addEventListener('input', function () {
+            const d = this.value.replace(/\D/g, '').slice(0, 13);
+            const parts = [d.slice(0, 5), d.slice(5, 12), d.slice(12, 13)];
+            this.value = parts.filter(p => p.length > 0).join('-');
+        });
+
+        function recalc() {
+            const basic = parseFloat(document.getElementById('basicSalary')?.value) || 0;
+            const shiftSel = document.getElementById('shiftSelect');
+            const opt = shiftSel ? shiftSel.options[shiftSel.selectedIndex] : null;
+            const hours = opt ? parseFloat(opt.getAttribute('data-hours')) : NaN;
+
+            const rate = (basic > 0 && hours > 0) ? (basic / 30 / hours) : 0;
+            document.getElementById('overtimeRate').value = rate.toFixed(2);
+
+            let gross = basic;
+            document.querySelectorAll('.allowance').forEach(function (el) {
+                gross += parseFloat(el.value) || 0;
+            });
+            document.getElementById('grossSalary').value = gross.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+
+        document.getElementById('basicSalary')?.addEventListener('input', recalc);
+        document.querySelectorAll('.allowance').forEach(el => el.addEventListener('input', recalc));
+        jQuery('#shiftSelect').on('change', recalc);
+        recalc();
+    </script>
+}

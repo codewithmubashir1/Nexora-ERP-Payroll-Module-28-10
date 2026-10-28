@@ -1,0 +1,27 @@
+@*
+    Usage: <partial name="_AvatarUpload" model="@(currentImagePath)" />
+    Model = current relative image path (string, may be null)
+    Optional ViewData: "InputName" (defaults to "ProfileImage"), "Label" (defaults to "Photo")
+*@
+@model string
+@{
+    var previewSrc = string.IsNullOrEmpty(Model) ? "/images/default-avatar.svg" : Model;
+    var inputName = ViewData["InputName"] as string ?? "ProfileImage";
+    var label = ViewData["Label"] as string ?? "Photo";
+    var allowSvg = inputName == "Logo";
+    var acceptTypes = allowSvg ? "image/png,image/jpeg,image/gif,image/webp,image/svg+xml" : "image/png,image/jpeg,image/gif,image/webp";
+    var helpText = allowSvg ? "JPG, PNG, GIF, WEBP or SVG. Max 3 MB." : "JPG, PNG, GIF or WEBP. Max 3 MB.";
+}
+
+<div class="avatar-upload text-center">
+    <div class="avatar-preview-wrapper mx-auto mb-2">
+        <img id="avatarPreview" src="@previewSrc" alt="@label" class="avatar-preview" />
+        <label for="avatarInput" class="avatar-edit-btn" title="Change @label.ToLower()">
+            <i class="fa-solid fa-camera"></i>
+        </label>
+    </div>
+    <input type="file" id="avatarInput" name="@inputName" accept="@acceptTypes" class="avatar-file-input" />
+    <label for="avatarInput" class="avatar-file-button"><i class="fa-solid fa-arrow-up-from-bracket"></i> Choose @label.ToLowerInvariant()</label>
+    <div id="avatarFileName" class="avatar-file-name">No file selected</div>
+    <div class="form-text">@helpText</div>
+</div>

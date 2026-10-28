@@ -1,0 +1,39 @@
+@model ERP.Identity.Models.ViewModels.Payroll.RequestListPageViewModel
+@{
+    var tableId = Model.Controller + "Table";
+}
+
+<div class="card animate__animated animate__fadeIn">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h3 class="card-title">@Model.Title</h3>
+        <a asp-controller="@Model.Controller" asp-action="Create" class="btn btn-primary btn-sm">
+            <i class="fa-solid fa-plus me-1"></i> @Model.NewButtonText
+        </a>
+    </div>
+    <div class="card-body">
+        @if (!string.IsNullOrEmpty(Model.HelpText))
+        {
+            <p class="text-muted small">@Model.HelpText</p>
+        }
+        <table id="@tableId" class="table table-striped table-hover align-middle w-100">
+            <thead>
+                <tr>
+                    <th>Request #</th>
+                    <th>Employee</th>
+                    <th>Department</th>
+                    <th>@Model.CategoryLabel</th>
+                    <th>@Model.DetailLabel</th>
+                    @if (Model.ShowAmount)
+                    {
+                        <th class="text-end">Amount</th>
+                    }
+                    <th>Submitted</th>
+                    <th>Status</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+        </table>
+    </div>
+</div>
+
+@Html.AntiForgeryToken()

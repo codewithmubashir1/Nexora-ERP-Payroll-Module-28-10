@@ -1,0 +1,148 @@
+@model ERP.Identity.Models.ViewModels.Sales.CustomerFormViewModel
+@{
+    var isEdit = Model.Id != 0;
+    ViewData["Title"] = isEdit ? "Edit Customer" : "New Customer";
+}
+
+<form asp-controller="Customers" asp-action="Save" method="post" novalidate>
+    @Html.AntiForgeryToken()
+    <input type="hidden" asp-for="Id" />
+
+    <div class="row">
+        <div class="col-lg-4">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Identifiers</h3></div>
+                <div class="card-body">
+                    @if (isEdit)
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Customer Code</label>
+                            <input value="@Model.CustomerCode" class="form-control" readonly disabled />
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="mb-3">
+                            <label class="form-label">Customer Code</label>
+                            <input value="Auto-generated on save" class="form-control" readonly disabled />
+                        </div>
+                    }
+                    <div class="mb-2">
+                        <label asp-for="CustomerCategoryId" class="form-label"></label>
+                        <select asp-for="CustomerCategoryId" class="form-select select2" data-placeholder="Select category">
+                            <option></option>
+                            @foreach (var c in Model.Categories)
+                            {
+                                <option value="@c.Id" selected="@(c.Id == Model.CustomerCategoryId)">@c.Name</option>
+                            }
+                        </select>
+                        <span asp-validation-for="CustomerCategoryId" class="text-danger small"></span>
+                    </div>
+                    <div class="form-check form-switch mt-3">
+                        <input asp-for="IsActive" class="form-check-input" role="switch" />
+                        <label asp-for="IsActive" class="form-check-label">Active</label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-8">
+            <div class="card animate__animated animate__fadeIn">
+                <div class="card-header"><h3 class="card-title">Customer Details</h3></div>
+                <div class="card-body">
+                    <div asp-validation-summary="ModelOnly" class="text-danger small mb-2"></div>
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label asp-for="Name" class="form-label"></label>
+                            <input asp-for="Name" class="form-control" />
+                            <span asp-validation-for="Name" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="PaymentTermsDays" class="form-label"></label>
+                            <select asp-for="PaymentTermsDays" class="form-select select2">
+                                <option value="0">On Receipt</option>
+                                <option value="7">7 Days</option>
+                                <option value="15">15 Days</option>
+                                <option value="30">30 Days</option>
+                                <option value="45">45 Days</option>
+                                <option value="60">60 Days</option>
+                                <option value="75">75 Days</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="ContactPerson" class="form-label"></label>
+                            <input asp-for="ContactPerson" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="Phone" class="form-label"></label>
+                            <input asp-for="Phone" class="form-control phone-input" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="Email" class="form-label"></label>
+                            <input asp-for="Email" class="form-control" />
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="OpeningBalance" class="form-label"></label>
+                            <input asp-for="OpeningBalance" type="number" step="0.01" class="form-control" />
+                        </div>
+
+                        <div class="col-md-6">
+                            <label asp-for="NTNNumber" class="form-label"></label>
+                            <input asp-for="NTNNumber" id="ntnInput" class="form-control" placeholder="0000000-0" maxlength="9" />
+                            <span asp-validation-for="NTNNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="SalesTaxRegistrationNumber" class="form-label"></label>
+                            <input asp-for="SalesTaxRegistrationNumber" id="strnInput" class="form-control" placeholder="00-00-0000-000-00" maxlength="17" />
+                            <span asp-validation-for="SalesTaxRegistrationNumber" class="text-danger small"></span>
+                        </div>
+                        <div class="col-md-6">
+                            <label asp-for="OurVendorCodeAtCustomer" class="form-label"></label>
+                            <input asp-for="OurVendorCodeAtCustomer" class="form-control" placeholder="The vendor code this customer uses to identify us" />
+                        </div>
+
+                        <div class="col-md-4">
+                            <label asp-for="Country" class="form-label"></label>
+                            <select asp-for="Country" id="customerCountrySelect" class="form-select" data-initial-value="@Model.Country"></select>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="City" class="form-label"></label>
+                            <select asp-for="City" id="customerCitySelect" class="form-select" data-initial-value="@Model.City"></select>
+                            <div class="form-text">Pick a city or type your own if it's not listed.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label asp-for="Address" class="form-label"></label>
+                            <input asp-for="Address" class="form-control" />
+                        </div>
+                    </div>
+                </div>
+                <div class="card-footer text-end">
+                    <a asp-controller="Customers" asp-action="Index" class="btn btn-outline-secondary">Cancel</a>
+                    <button type="submit" class="btn btn-primary"><i class="fa-solid fa-floppy-disk me-1"></i> @(isEdit ? "Update Customer" : "Create Customer")</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</form>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        // NTN mask: 0000000-0
+        document.getElementById('ntnInput')?.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/[^0-9]/g, '').slice(0, 8);
+            if (v.length > 7) v = v.slice(0, 7) + '-' + v.slice(7);
+            e.target.value = v;
+        });
+
+        // STRN mask: 00-00-0000-000-00
+        document.getElementById('strnInput')?.addEventListener('input', function (e) {
+            let v = e.target.value.replace(/[^0-9]/g, '').slice(0, 15);
+            let parts = [v.slice(0, 2), v.slice(2, 4), v.slice(4, 8), v.slice(8, 11), v.slice(11, 13)];
+            e.target.value = parts.filter(p => p.length > 0).join('-');
+        });
+        initCountryCityCascade('customerCountrySelect', 'customerCitySelect');
+    </script>
+}
